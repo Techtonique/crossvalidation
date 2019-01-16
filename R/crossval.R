@@ -1,15 +1,34 @@
-# do an objective function with seeds/
-# function(x, y, fit = glm, predict = predict.glm, params, seed)
-# with a function fit and a function predict (any) e.g bayesianrvfl::fit,
-# bayesianrvfl::predict
-
-# for xgboost, for random forest, for lm, for custom model (rvfl1 & 2)
-# with only one set of parameters list(nrounds = 1000, max_depth = 3,
-# eta = 0.01, subsample = 0.75)
-# and do.call(what, args, quote = FALSE, envir = parent.frame())
-# and metric ("rmse", )
-# ModelMetrics::auc
-
+# say what to do for functions whose training and response names aren't x, y
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param fit_func
+#' @param predict_func
+#' @param fit_params
+#' @param k
+#' @param repeats
+#' @param seed
+#' @param eval_metric
+#' @param cl
+#' @param errorhandling
+#' @param packages
+#' @param verbose
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+#' crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+#' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
+#' packages = "glmnet", fit_params = list(alpha = 1, lambda = 0.1))
+#'
+#' crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+#' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
+#' packages = "glmnet", fit_params = list(alpha = 0, lambda = 0.01))
+#'
 crossval <- function(x, y,
                      fit_func = stats::glm.fit,
                      predict_func = stats::predict.glm,
@@ -61,7 +80,8 @@ crossval <- function(x, y,
                             .combine = rbind, .errorhandling = "remove",
                             .options.snow = opts, .verbose = FALSE,
                             .export = c("create_folds"))%op%{
-      0
+      # think about which loop to do in parallel
+      # + case when repeats == 1
     }
     close(pb)
     snow::stopCluster(cl_SOCK)
@@ -77,11 +97,12 @@ crossval <- function(x, y,
 
     i <- j <- NULL
     res <- foreach::foreach(j = 1:repeats, .packages = packages,
-                            .combine = rbind, .verbose = FALSE,
+                            .combine = cbind, .verbose = FALSE,
                             .errorhandling = errorhandling,
                             .export = c("fit_params"))%op%{
 
-        temp <- foreach::foreach(i = 1:k, .combine = 'rbind', .errorhandling = "stop")%op%{
+        temp <- foreach::foreach(i = 1:k, .combine = 'rbind',
+                                 .errorhandling = errorhandling)%op%{
 
         train_index <- -list_folds[[j]][[i]]
         test_index <- -train_index
@@ -114,36 +135,9 @@ crossval <- function(x, y,
     close(pb)
   }
 
+  colnames(res) <- paste0("repeat", 1:repeats)
+  rownames(res) <- paste0("fold", 1:k)
   return(res)
 
 }
 compiler::cmpfun(crossval)
-
-# library(xgboost)
-#
-# dtrain <- xgb.DMatrix(data = as.matrix(training_set[,-ncol(veteran_wod_wt)]),
-#                       label = training_set$log_ratio)
-#
-# (cv <- xgb.cv(data = dtrain, nthread = 2, nfold = 5, metrics = "rmse",
-#               nrounds = 1000, max_depth = 3, eta = 0.01, subsample = 0.75, objective = "reg:linear"))
-#
-# print(cv)
-#
-# OF <- function(xx) xgb.cv(data = dtrain, nthread = 2, # do repeats with seed
-#                           nfold = 5, metrics = "rmse",
-#                           nrounds = 1000, max_depth = 3,
-#                           eta = 0.01, subsample = 0.75,
-#                           objective = "reg:linear")
-#
-# library(caret)
-# set.seed(123)
-# trControl <- caret::trainControl(method = "repeatedcv", number = 5, repeats = 3,
-#                                  p = 0.8)
-# caret::train(x = as.matrix(training_set[,-ncol(veteran_wod_wt)]),
-#              y = training_set$log_ratio, method = "xgbTree",
-#              trControl = trControl,
-#              tuneGrid = data.frame(nrounds = 1000, max_depth = 3,
-#                                    eta = 0.01, gamma = 0.1, subsample = 0.75,
-#                                    colsample_bytree = 1, min_child_weight = 1))
-#
-#
