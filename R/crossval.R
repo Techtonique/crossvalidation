@@ -21,13 +21,34 @@
 #'
 #' @examples
 #'
+#'# dataset
+#' n <- 100 ; p <- 5
+#' X <- matrix(rnorm(n * p), n, p)
+#' y <- rnorm(n)
+#'
+#'# glmnet example -----
+#'
+#'# fit glmnet, with alpha = 1, lambda = 0.1
 #' crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 #' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
 #' packages = "glmnet", fit_params = list(alpha = 1, lambda = 0.1))
 #'
+#'# fit glmnet, with alpha = 0, lambda = 0.01
 #' crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 #' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
 #' packages = "glmnet", fit_params = list(alpha = 0, lambda = 0.01))
+#'
+#'# randomForest example -----
+#'
+#'# fit randomForest with mtry = 2
+#'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+#'fit_func = randomForest::randomForest, predict_func = predict,
+#'packages = "randomForest", fit_params = list(mtry = 2))
+#'
+#'# fit randomForest with mtry = 4
+#'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+#'fit_func = randomForest::randomForest, predict_func = predict,
+#'packages = "randomForest", fit_params = list(mtry = 4))
 #'
 crossval <- function(x, y,
                      fit_func = stats::glm.fit,
@@ -116,11 +137,11 @@ crossval <- function(x, y,
                            args = c(list(x = x, y = y), fit_params))
 
         # predict
-        preds <- try(predict_func(fit_obj, newdata = x[-train_index, ]),
+        preds <- try(predict_func(fit_obj, newdata = x[test_index, ]),
                      silent = TRUE)
         if (class(preds) == "try-error")
         {
-          preds <- try(predict_func(fit_obj, newx = x[-train_index, ]),
+          preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
                        silent = TRUE)
         }
 
