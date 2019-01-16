@@ -1,5 +1,4 @@
-# say what to do for functions whose training and response names aren't x, y
-#' Title
+#' Generic cross-validation function
 #'
 #' @param x
 #' @param y
@@ -22,6 +21,7 @@
 #' @examples
 #'
 #'# dataset
+#' set.seed(123)
 #' n <- 100 ; p <- 5
 #' X <- matrix(rnorm(n * p), n, p)
 #' y <- rnorm(n)
@@ -50,6 +50,23 @@
 #'fit_func = randomForest::randomForest, predict_func = predict,
 #'packages = "randomForest", fit_params = list(mtry = 4))
 #'
+#'# xgboost example -----
+#'
+#'# The response and covariates are named 'label' and 'data'
+#'# So, we do this:
+#'
+#'f_xgboost <- function(x, y, ...) xgboost::xgboost(data = x, label = y, ...)
+#'
+#'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+#'  fit_func = f_xgboost, predict_func = predict,
+#'   packages = "xgboost", fit_params = list(nrounds = 5,
+#'   verbose = FALSE))
+#'
+#'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+#'  fit_func = f_xgboost, predict_func = predict,
+#'   packages = "xgboost", fit_params = list(nrounds = 10,
+#'   verbose = FALSE))
+#'
 crossval <- function(x, y,
                      fit_func = stats::glm.fit,
                      predict_func = stats::predict.glm,
@@ -61,6 +78,7 @@ crossval <- function(x, y,
                      ...){
 
   x <- as.matrix(x)
+  errorhandling <- match.arg(errorhandling)
 
   # evaluation metric
   if (is.null(eval_metric))
@@ -78,7 +96,7 @@ crossval <- function(x, y,
       eval_metric <- function (preds, actual)
       {
         res <- sqrt(mean((preds - actual)^2))
-        names(res) <- "res"
+        names(res) <- "rmse"
         return(res)
       }
 
@@ -97,13 +115,13 @@ crossval <- function(x, y,
     opts <- list(progress = progress)
 
     i <- NULL
-    res <- foreach::foreach(i = 1:nb_iter, .packages = c("doSNOW", "Rcpp"),
-                            .combine = rbind, .errorhandling = "remove",
-                            .options.snow = opts, .verbose = FALSE,
+    res <- foreach::foreach(i = 1:nb_iter, .packages = packages,
+                            .combine = rbind, .errorhandling = errorhandling,
+                            .options.snow = opts, .verbose = verbose,
                             .export = c("create_folds"))%op%{
-      # think about which loop to do in parallel
-      # + case when repeats == 1
-    }
+                              # think about which loop to do in parallel
+                              # + case when repeats == 1
+                            }
     close(pb)
     snow::stopCluster(cl_SOCK)
 
@@ -122,36 +140,36 @@ crossval <- function(x, y,
                             .errorhandling = errorhandling,
                             .export = c("fit_params"))%op%{
 
-        temp <- foreach::foreach(i = 1:k, .combine = 'rbind',
-                                 .errorhandling = errorhandling)%op%{
+                              temp <- foreach::foreach(i = 1:k, .combine = 'rbind',
+                                                       .errorhandling = errorhandling)%op%{
 
-        train_index <- -list_folds[[j]][[i]]
-        test_index <- -train_index
+                                                         train_index <- -list_folds[[j]][[i]]
+                                                         test_index <- -train_index
 
-        # fit
-        fit_func_train <- function(x, y, ...) fit_func(x = x[train_index, ],
-                                                        y = y[train_index],
-                                                        ...)
+                                                         # fit
+                                                         fit_func_train <- function(x, y, ...) fit_func(x = x[train_index, ],
+                                                                                                        y = y[train_index],
+                                                                                                        ...)
 
-        fit_obj <- do.call(what = fit_func_train,
-                           args = c(list(x = x, y = y), fit_params))
+                                                         fit_obj <- do.call(what = fit_func_train,
+                                                                            args = c(list(x = x, y = y), fit_params))
 
-        # predict
-        preds <- try(predict_func(fit_obj, newdata = x[test_index, ]),
-                     silent = TRUE)
-        if (class(preds) == "try-error")
-        {
-          preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
-                       silent = TRUE)
-        }
+                                                         # predict
+                                                         preds <- try(predict_func(fit_obj, newdata = x[test_index, ]),
+                                                                      silent = TRUE)
+                                                         if (class(preds) == "try-error")
+                                                         {
+                                                           preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
+                                                                        silent = TRUE)
+                                                         }
 
-        error_measure <- eval_metric(preds, y[test_index])
+                                                         error_measure <- eval_metric(preds, y[test_index])
 
-        setTxtProgressBar(pb, i*j)
+                                                         setTxtProgressBar(pb, i*j)
 
-        error_measure
-      } # end loop i = 1:k
-    } # end loop j = 1:repeats
+                                                         error_measure
+                                                       } # end loop i = 1:k
+                            } # end loop j = 1:repeats
 
     close(pb)
   }
