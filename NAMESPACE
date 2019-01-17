@@ -1,2 +1,4 @@
 import(parallel)
+importFrom("stats", "quantile", "quasi")
+importFrom("utils", "setTxtProgressBar", "txtProgressBar")
 exportPattern("^[[:alpha:]]+")
