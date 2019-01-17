@@ -198,9 +198,12 @@ crossval <- function(x, y,
   print(proc.time() - ptm)
   cat("\n")
 
-  colnames(res) <- paste0("repeat", 1:repeats)
-  rownames(res) <- paste0("fold", 1:k)
-  return(res)
+  colnames(res) <- paste0("repeat", 1:ncol(res))
+  rownames(res) <- paste0("fold", 1:nrow(res))
+  return(list(folds = res,
+              mean = mean(res, na.rm = TRUE),
+              sd = sd(res, na.rm = TRUE),
+              median = median(res, na.rm = TRUE)))
 
 }
 compiler::cmpfun(crossval)
