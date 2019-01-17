@@ -85,7 +85,7 @@ crossval <- function(x, y,
                      eval_metric = NULL, cl = NULL,
                      errorhandling = c('stop', 'remove', 'pass'),
                      packages = c("stats", "Rcpp"), verbose = FALSE,
-                     ...){
+                     show_progress = TRUE, ...){
 
   x <- as.matrix(x)
   errorhandling <- match.arg(errorhandling)
@@ -146,7 +146,10 @@ crossval <- function(x, y,
                          function (i) crossval::create_folds(y = y, k = k))
 
     `%op%` <-  foreach::`%do%`
-    pb <- txtProgressBar(min = 0, max = k*repeats, style = 3)
+    if (show_progress)
+    {
+      pb <- txtProgressBar(min = 0, max = k*repeats, style = 3)
+    }
 
     i <- j <- NULL
     res <- foreach::foreach(j = 1:repeats, .packages = packages,
@@ -185,18 +188,26 @@ crossval <- function(x, y,
                                                          # measure the error
                                                          error_measure <- eval_metric(preds, y[test_index])
 
-                                                         setTxtProgressBar(pb, i*j)
+                                                         if (show_progress)
+                                                         {
+                                                           setTxtProgressBar(pb, i*j)
+                                                         }
 
                                                          error_measure
                                                        } # end loop i = 1:k
                             } # end loop j = 1:repeats
-
-    close(pb)
+    if (show_progress)
+    {
+      close(pb)
+    }
   }
 
-  cat("\n")
-  print(proc.time() - ptm)
-  cat("\n")
+  if (show_progress)
+  {
+    cat("\n")
+    print(proc.time() - ptm)
+    cat("\n")
+  }
 
   colnames(res) <- paste0("repeat", 1:ncol(res))
   rownames(res) <- paste0("fold", 1:nrow(res))
