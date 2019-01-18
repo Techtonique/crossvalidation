@@ -1,4 +1,5 @@
 import(parallel)
+importFrom("stats", "median", "sd")
 importFrom("stats", "quantile", "quasi")
 importFrom("utils", "setTxtProgressBar", "txtProgressBar")
 exportPattern("^[[:alpha:]]+")

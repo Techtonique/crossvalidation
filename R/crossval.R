@@ -6,9 +6,13 @@
 #' @param y response variable; a vector
 #' @param fit_func a function for fitting the model
 #' @param predict_func a function for predicting values from the model
-#' @param fit_params a list; additional (model-specific) parameters to be passed to \code{fit_func}
+#' @param fit_params a list; additional (model-specific) parameters to be passed
+#' to \code{fit_func}
 #' @param k an integer; number of folds in k-fold cross validation
 #' @param repeats an integer; number of repeats for the k-fold cross validation
+#' @param p a double; proportion of data in the training set, default is 1 and
+#' must be > 0.5. If \code{p} < 1, a validation set error is calculated on the
+#' remaining 1-\code{p} fraction data
 #' @param seed random seed for reproducibility of results
 #' @param eval_metric a function measuring the test errors; if not provided: RMSE for regression and
 #' accuracy for classification
@@ -21,6 +25,7 @@
 #' @param packages character vector of packages that the tasks depend on
 #' @param verbose logical flag enabling verbose messages. This can be very useful for
 #' trouble shooting
+#' @param show_progress show evolution of the algorithm
 #' @param ... additional parameters
 #'
 #' @return
@@ -38,61 +43,112 @@
 #'
 #'
 #'# fit glmnet, with alpha = 1, lambda = 0.1
+#'
+#'require(glmnet)
+#'require(Matrix)
+#'
 #' crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+#'
 #' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
 #' packages = c("glmnet", "Matrix"), fit_params = list(alpha = 1, lambda = 0.1))
 #'
 #'# fit glmnet, with alpha = 0, lambda = 0.01
+#'
 #' crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 #' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
 #' packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
 #'
+#' # fit glmnet, with alpha = 0, lambda = 0.01, with validation set
+#'
+#' crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+#' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
+#' packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
+#'
+#'
 #'# randomForest example -----
 #'
+#'require(randomForest)
 #'
 #'# fit randomForest with mtry = 2
+#'
 #'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 #'fit_func = randomForest::randomForest, predict_func = predict,
 #'packages = "randomForest", fit_params = list(mtry = 2))
 #'
 #'# fit randomForest with mtry = 4
+#'
 #'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 #'fit_func = randomForest::randomForest, predict_func = predict,
 #'packages = "randomForest", fit_params = list(mtry = 4))
 #'
+#'# fit randomForest with mtry = 4, with validation set
+#'
+#'crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+#'fit_func = randomForest::randomForest, predict_func = predict,
+#'packages = "randomForest", fit_params = list(mtry = 4))
+#'
 #'# xgboost example -----
+#'
+#'require(xgboost)
 #'
 #'# The response and covariates are named 'label' and 'data'
 #'# So, we do this:
 #'
 #'f_xgboost <- function(x, y, ...) xgboost::xgboost(data = x, label = y, ...)
 #'
+#'# fit xgboost with nrounds = 5
+#'
 #'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 #'  fit_func = f_xgboost, predict_func = predict,
 #'   packages = "xgboost", fit_params = list(nrounds = 5,
 #'   verbose = FALSE))
+#'
+#'# fit xgboost with nrounds = 10
 #'
 #'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 #'  fit_func = f_xgboost, predict_func = predict,
 #'   packages = "xgboost", fit_params = list(nrounds = 10,
 #'   verbose = FALSE))
 #'
+#'# fit xgboost with nrounds = 10, with validation set
+#'
+#'crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+#'  fit_func = f_xgboost, predict_func = predict,
+#'   packages = "xgboost", fit_params = list(nrounds = 10,
+#'   verbose = FALSE))
+#'
+#'
 crossval <- function(x, y,
                      fit_func = stats::glm.fit,
                      predict_func = stats::predict.glm,
                      fit_params = list(family = quasi()), # and hyperparameters
-                     k = 5, repeats = 3, seed = 123,
+                     k = 5, repeats = 3, p = 1, seed = 123,
                      eval_metric = NULL, cl = NULL,
                      errorhandling = c('stop', 'remove', 'pass'),
                      packages = c("stats", "Rcpp"), verbose = FALSE,
                      show_progress = TRUE, ...){
 
-  x <- as.matrix(x)
+  n_y <- length(y)
+  stopifnot(n_y == nrow(x))
+
+  set.seed(seed)
+  if (p == 1) # default
+  {
+    x <- as.matrix(x)
+  } else {
+    index_train <- sample.int(n_y, size = floor(p*n_y))
+    x <- as.matrix(x[index_train, ])
+    y <- y[index_train]
+    x_validation <- as.matrix(x[-index_train, ])
+    y_validation <- y[-index_train]
+  }
+
   errorhandling <- match.arg(errorhandling)
   stopifnot(floor(k) == k || k > 10)
+  stopifnot(p >= 0.5 && p <= 1)
   stopifnot(floor(repeats) == repeats)
 
-  # evaluation metric
+  # evaluation metric for cv error
   if (is.null(eval_metric))
   {
     if (is.factor(y)) # classification
@@ -123,6 +179,7 @@ crossval <- function(x, y,
     cl_SOCK <- parallel::makeCluster(cl, type = "SOCK")
     doSNOW::registerDoSNOW(cl_SOCK)
     `%op%` <-  foreach::`%dopar%`
+    nb_iter <- k*repeats
 
     pb <- txtProgressBar(min = 0, max = nb_iter, style = 3)
     progress <- function(n) utils::setTxtProgressBar(pb, n)
@@ -193,7 +250,33 @@ crossval <- function(x, y,
                                                            setTxtProgressBar(pb, i*j)
                                                          }
 
-                                                         error_measure
+                                                           if (p == 1){
+
+                                                             error_measure
+
+                                                           } else { # there is a validation set
+
+                                                             # predict on validation set
+                                                             preds_validation <- try(predict_func(fit_obj,
+                                                                                                  newdata = x_validation),
+                                                                          silent = TRUE)
+
+                                                             if (class(preds_validation) == "try-error")
+                                                             {
+                                                               preds_validation <- try(predict_func(fit_obj,
+                                                                                                    newx = x_validation),
+                                                                            silent = TRUE)
+
+                                                               if (class(preds_validation) == "try-error")
+                                                               {
+                                                                 preds_validation <- rep(NA, length(y_validation))
+                                                               }
+                                                             }
+
+                                                             # measure the validation error
+                                                             c(error_measure, eval_metric(preds_validation, y_validation))
+                                                           }
+
                                                        } # end loop i = 1:k
                             } # end loop j = 1:repeats
     if (show_progress)
@@ -209,12 +292,24 @@ crossval <- function(x, y,
     cat("\n")
   }
 
-  colnames(res) <- paste0("repeat", 1:ncol(res))
-  rownames(res) <- paste0("fold", 1:nrow(res))
-  return(list(folds = res,
-              mean = mean(res, na.rm = TRUE),
-              sd = sd(res, na.rm = TRUE),
-              median = median(res, na.rm = TRUE)))
+  if (p == 1)
+  {
+    colnames(res) <- paste0("repeat", 1:ncol(res))
+    rownames(res) <- paste0("fold", 1:nrow(res))
+    return(list(folds = res,
+                mean = mean(res, na.rm = TRUE),
+                sd = sd(res, na.rm = TRUE),
+                median = median(res, na.rm = TRUE)))
+  } else {
+
+    colnames(res) <- paste(rep(c("repeat_training", "repeat_validation"), repeats),
+                           rep(1:repeats, each = 2))
+
+    return(list(folds = res,
+                mean = colMeans(res, na.rm = TRUE),
+                sd = apply(res, 2, function (x) sd(x, na.rm = FALSE)),
+                median = apply(res, 2, function (x) median(x, na.rm = FALSE))))
+  }
 
 }
 compiler::cmpfun(crossval)

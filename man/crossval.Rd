@@ -5,9 +5,10 @@
 \title{Generic cross-validation function}
 \usage{
 crossval(x, y, fit_func = stats::glm.fit, predict_func = stats::predict.glm,
-  fit_params = list(family = quasi()), k = 5, repeats = 3, seed = 123,
-  eval_metric = NULL, cl = NULL, errorhandling = c("stop", "remove",
-  "pass"), packages = c("stats", "Rcpp"), verbose = FALSE, ...)
+  fit_params = list(family = quasi()), k = 5, repeats = 3, p = 1,
+  seed = 123, eval_metric = NULL, cl = NULL, errorhandling = c("stop",
+  "remove", "pass"), packages = c("stats", "Rcpp"), verbose = FALSE,
+  show_progress = TRUE, ...)
 }
 \arguments{
 \item{x}{input covariates' matrix}
@@ -18,11 +19,16 @@ crossval(x, y, fit_func = stats::glm.fit, predict_func = stats::predict.glm,
 
 \item{predict_func}{a function for predicting values from the model}
 
-\item{fit_params}{a list; additional (model-specific) parameters to be passed to \code{fit_func}}
+\item{fit_params}{a list; additional (model-specific) parameters to be passed
+to \code{fit_func}}
 
 \item{k}{an integer; number of folds in k-fold cross validation}
 
 \item{repeats}{an integer; number of repeats for the k-fold cross validation}
+
+\item{p}{proportion of data in the training set; default is 1, must be > 0.5.
+If \code{p} < 1, a validation set error is calculated on the remaining 1-\code{p}
+fraction data}
 
 \item{seed}{random seed for reproducibility of results}
 
@@ -42,6 +48,8 @@ rest of the results. The default value is "stop".}
 \item{verbose}{logical flag enabling verbose messages. This can be very useful for
 trouble shooting}
 
+\item{show_progress}{show evolution of the algorithm}
+
 \item{...}{additional parameters}
 }
 \description{
@@ -59,43 +67,80 @@ y <- rnorm(n)
 
 
 # fit glmnet, with alpha = 1, lambda = 0.1
+
+require(glmnet)
+require(Matrix)
+
+\dontrun{
 crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+
 fit_func = glmnet::glmnet, predict_func = predict.glmnet,
 packages = c("glmnet", "Matrix"), fit_params = list(alpha = 1, lambda = 0.1))
 
 # fit glmnet, with alpha = 0, lambda = 0.01
+
 crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 fit_func = glmnet::glmnet, predict_func = predict.glmnet,
 packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
 
+# fit glmnet, with alpha = 0, lambda = 0.01, with validation set
+
+crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+fit_func = glmnet::glmnet, predict_func = predict.glmnet,
+packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
+}
+
 # randomForest example -----
 
+require(randomForest)
 
 # fit randomForest with mtry = 2
+
 crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 fit_func = randomForest::randomForest, predict_func = predict,
 packages = "randomForest", fit_params = list(mtry = 2))
 
 # fit randomForest with mtry = 4
+
 crossval::crossval(x = X, y = y, k = 5, repeats = 3,
 fit_func = randomForest::randomForest, predict_func = predict,
 packages = "randomForest", fit_params = list(mtry = 4))
 
+# fit randomForest with mtry = 4, with validation set
+
+crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+fit_func = randomForest::randomForest, predict_func = predict,
+packages = "randomForest", fit_params = list(mtry = 4))
+
 # xgboost example -----
+
+require(xgboost)
 
 # The response and covariates are named 'label' and 'data'
 # So, we do this:
 
 f_xgboost <- function(x, y, ...) xgboost::xgboost(data = x, label = y, ...)
 
+# fit xgboost with nrounds = 5
+
 crossval::crossval(x = X, y = y, k = 5, repeats = 3,
  fit_func = f_xgboost, predict_func = predict,
   packages = "xgboost", fit_params = list(nrounds = 5,
   verbose = FALSE))
 
+# fit xgboost with nrounds = 10
+
 crossval::crossval(x = X, y = y, k = 5, repeats = 3,
  fit_func = f_xgboost, predict_func = predict,
   packages = "xgboost", fit_params = list(nrounds = 10,
   verbose = FALSE))
+
+# fit xgboost with nrounds = 10, with validation set
+
+crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+ fit_func = f_xgboost, predict_func = predict,
+  packages = "xgboost", fit_params = list(nrounds = 10,
+  verbose = FALSE))
+
 
 }
