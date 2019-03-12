@@ -1,4 +1,4 @@
-# `nnetsauce` Code of Conduct
+# `crossval` Code of Conduct
 
 ## 1. Purpose
 
