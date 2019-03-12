@@ -136,3 +136,9 @@ crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
 ### Contributing
 
 Your contributions are welcome, and valuable. Please, make sure to __read__ the [Code of Conduct](CONTRIBUTING.md) first.
+
+
+### License
+
+[BSD 3-Clause](LICENSE) © Thierry Moudiki, 2019. 
+
