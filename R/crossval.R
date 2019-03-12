@@ -10,7 +10,7 @@
 #' to \code{fit_func}
 #' @param k an integer; number of folds in k-fold cross validation
 #' @param repeats an integer; number of repeats for the k-fold cross validation
-#' @param p a double; proportion of data in the training set, default is 1 and
+#' @param p a double; proportion of data in the training/testing set, default is 1 and
 #' must be > 0.5. If \code{p} < 1, a validation set error is calculated on the
 #' remaining 1-\code{p} fraction data
 #' @param seed random seed for reproducibility of results
@@ -34,35 +34,15 @@
 #' @examples
 #'
 #'# dataset
+#'
 #' set.seed(123)
 #' n <- 100 ; p <- 5
 #' X <- matrix(rnorm(n * p), n, p)
 #' y <- rnorm(n)
 #'
-#'# glmnet example -----
+#'# linear model example -----
 #'
-#'
-#'# fit glmnet, with alpha = 1, lambda = 0.1
-#'
-#'require(glmnet)
-#'require(Matrix)
-#'
-#' crossval::crossval(x = X, y = y, k = 5, repeats = 3,
-#'
-#' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
-#' packages = c("glmnet", "Matrix"), fit_params = list(alpha = 1, lambda = 0.1))
-#'
-#'# fit glmnet, with alpha = 0, lambda = 0.01
-#'
-#' crossval::crossval(x = X, y = y, k = 5, repeats = 3,
-#' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
-#' packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
-#'
-#' # fit glmnet, with alpha = 0, lambda = 0.01, with validation set
-#'
-#' crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
-#' fit_func = glmnet::glmnet, predict_func = predict.glmnet,
-#' packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
+#' crossval::crossval(x = X, y = y, k = 5, repeats = 3)
 #'
 #'
 #'# randomForest example -----
@@ -72,56 +52,25 @@
 #'# fit randomForest with mtry = 2
 #'
 #'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
-#'fit_func = randomForest::randomForest, predict_func = predict,
-#'packages = "randomForest", fit_params = list(mtry = 2))
+#'                   fit_func = randomForest::randomForest, predict_func = predict,
+#'                   packages = "randomForest", fit_params = list(mtry = 2))
 #'
 #'# fit randomForest with mtry = 4
 #'
 #'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
-#'fit_func = randomForest::randomForest, predict_func = predict,
-#'packages = "randomForest", fit_params = list(mtry = 4))
+#'                   fit_func = randomForest::randomForest, predict_func = predict,
+#'                   packages = "randomForest", fit_params = list(mtry = 4))
 #'
-#'# fit randomForest with mtry = 4, with validation set
-#'
-#'crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
-#'fit_func = randomForest::randomForest, predict_func = predict,
-#'packages = "randomForest", fit_params = list(mtry = 4))
-#'
-#'# xgboost example -----
-#'
-#'require(xgboost)
-#'
-#'# The response and covariates are named 'label' and 'data'
-#'# So, we do this:
-#'
-#'f_xgboost <- function(x, y, ...) xgboost::xgboost(data = x, label = y, ...)
-#'
-#'# fit xgboost with nrounds = 5
-#'
-#'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
-#'  fit_func = f_xgboost, predict_func = predict,
-#'   packages = "xgboost", fit_params = list(nrounds = 5,
-#'   verbose = FALSE))
-#'
-#'# fit xgboost with nrounds = 10
-#'
-#'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
-#'  fit_func = f_xgboost, predict_func = predict,
-#'   packages = "xgboost", fit_params = list(nrounds = 10,
-#'   verbose = FALSE))
-#'
-#'# fit xgboost with nrounds = 10, with validation set
+#'# fit randomForest with mtry = 4, with a validation set
 #'
 #'crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
-#'  fit_func = f_xgboost, predict_func = predict,
-#'   packages = "xgboost", fit_params = list(nrounds = 10,
-#'   verbose = FALSE))
-#'
+#'                   fit_func = randomForest::randomForest, predict_func = predict,
+#'                   packages = "randomForest", fit_params = list(mtry = 4))
 #'
 crossval <- function(x, y,
-                     fit_func = stats::glm.fit,
-                     predict_func = stats::predict.glm,
-                     fit_params = list(family = quasi()), # and hyperparameters
+                     fit_func = crossval::fit_lm,
+                     predict_func = crossval::predict_lm,
+                     fit_params = NULL, # and hyperparameters
                      k = 5, repeats = 3, p = 1, seed = 123,
                      eval_metric = NULL, cl = NULL,
                      errorhandling = c('stop', 'remove', 'pass'),
@@ -215,7 +164,8 @@ crossval <- function(x, y,
                             .export = c("fit_params"))%op%{
 
                               temp <- foreach::foreach(i = 1:k, .combine = 'rbind',
-                                                       .errorhandling = errorhandling)%op%{
+                                                       .errorhandling = errorhandling,
+                                                       .verbose = FALSE)%op%{
 
                                                          train_index <- -list_folds[[j]][[i]]
                                                          test_index <- -train_index
@@ -226,7 +176,8 @@ crossval <- function(x, y,
                                                                                                         ...)
 
                                                          fit_obj <- do.call(what = fit_func_train,
-                                                                            args = c(list(x = x, y = y),
+                                                                            args = c(list(x = x[train_index, ],
+                                                                                          y = y[train_index]),
                                                                                      fit_params))
 
                                                          # predict
@@ -250,32 +201,32 @@ crossval <- function(x, y,
                                                            setTxtProgressBar(pb, i*j)
                                                          }
 
-                                                           if (p == 1){
+                                                         if (p == 1){
 
-                                                             error_measure
+                                                           error_measure
 
-                                                           } else { # there is a validation set
+                                                         } else { # there is a validation set
 
-                                                             # predict on validation set
+                                                           # predict on validation set
+                                                           preds_validation <- try(predict_func(fit_obj,
+                                                                                                newdata = x_validation),
+                                                                                   silent = TRUE)
+
+                                                           if (class(preds_validation) == "try-error")
+                                                           {
                                                              preds_validation <- try(predict_func(fit_obj,
-                                                                                                  newdata = x_validation),
-                                                                          silent = TRUE)
+                                                                                                  newx = x_validation),
+                                                                                     silent = TRUE)
 
                                                              if (class(preds_validation) == "try-error")
                                                              {
-                                                               preds_validation <- try(predict_func(fit_obj,
-                                                                                                    newx = x_validation),
-                                                                            silent = TRUE)
-
-                                                               if (class(preds_validation) == "try-error")
-                                                               {
-                                                                 preds_validation <- rep(NA, length(y_validation))
-                                                               }
+                                                               preds_validation <- rep(NA, length(y_validation))
                                                              }
-
-                                                             # measure the validation error
-                                                             c(error_measure, eval_metric(preds_validation, y_validation))
                                                            }
+
+                                                           # measure the validation error
+                                                           c(error_measure, eval_metric(preds_validation, y_validation))
+                                                         }
 
                                                        } # end loop i = 1:k
                             } # end loop j = 1:repeats
