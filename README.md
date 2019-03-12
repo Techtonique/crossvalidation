@@ -31,9 +31,15 @@ TODO
 Linear model 
 
 ```R
+
+# 'X' contains the explanatory variables
+# 'y' is the response
+# 'k' is the number of folds in k-fold cross-validation
+# 'repeats' is the number of repeats of the k-fold cross-validation procedure
+
 # linear model example -----
 
- crossval::crossval(x = X, y = y, k = 5, repeats = 3)
+crossval::crossval(x = X, y = y, k = 5, repeats = 3)
 
 # linear model example, with validation set
 
