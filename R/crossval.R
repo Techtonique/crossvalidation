@@ -146,73 +146,73 @@ crossval <- function(x, y,
                             .export = c("create_folds"))%op1%{
 
                               foreach::foreach(j = 1:repeats, .packages = packages,
-                                                      .combine = cbind, .verbose = FALSE,
-                                                      .errorhandling = errorhandling,
-                                                      .export = c("fit_params"))%op2%{
+                                               .combine = cbind, .verbose = FALSE,
+                                               .errorhandling = errorhandling,
+                                               .export = c("fit_params"))%op2%{
 
-                                                        train_index <- -list_folds[[j]][[i]]
-                                                        test_index <- -train_index
+                                                 train_index <- -list_folds[[j]][[i]]
+                                                 test_index <- -train_index
 
-                                                        # fit
-                                                        set.seed(seed) # in case the algo is random
-                                                        fit_func_train <- function(x, y, ...) fit_func(x = x[train_index, ],
-                                                                                                       y = y[train_index],
-                                                                                                       ...)
+                                                 # fit
+                                                 set.seed(seed) # in case the algo is randomized
+                                                 fit_func_train <- function(x, y, ...) fit_func(x = x[train_index, ],
+                                                                                                y = y[train_index],
+                                                                                                ...)
 
-                                                        fit_obj <- do.call(what = fit_func_train,
-                                                                           args = c(list(x = x[train_index, ],
-                                                                                         y = y[train_index]),
-                                                                                    fit_params))
+                                                 fit_obj <- do.call(what = fit_func_train,
+                                                                    args = c(list(x = x[train_index, ],
+                                                                                  y = y[train_index]),
+                                                                             fit_params))
 
-                                                        # predict
-                                                        preds <- try(predict_func(fit_obj, newdata = x[test_index, ]),
-                                                                     silent = TRUE)
-                                                        if (class(preds) == "try-error")
-                                                        {
-                                                          preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
-                                                                       silent = TRUE)
-                                                          if (class(preds) == "try-error")
-                                                          {
-                                                            preds <- rep(NA, length(test_index))
-                                                          }
-                                                        }
+                                                 # predict
+                                                 preds <- try(predict_func(fit_obj, newdata = x[test_index, ]),
+                                                              silent = TRUE)
+                                                 if (class(preds) == "try-error")
+                                                 {
+                                                   preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
+                                                                silent = TRUE)
+                                                   if (class(preds) == "try-error")
+                                                   {
+                                                     preds <- rep(NA, length(test_index))
+                                                   }
+                                                 }
 
-                                                        # measure the error
-                                                        error_measure <- eval_metric(preds, y[test_index])
+                                                 # measure the error
+                                                 error_measure <- eval_metric(preds, y[test_index])
 
-                                                        if (show_progress)
-                                                        {
-                                                          setTxtProgressBar(pb, i*j)
-                                                        }
+                                                 if (show_progress)
+                                                 {
+                                                   setTxtProgressBar(pb, i*j)
+                                                 }
 
-                                                        if (p == 1){
+                                                 if (p == 1){
 
-                                                          error_measure
+                                                   error_measure
 
-                                                        } else { # there is a validation set
+                                                 } else { # there is a validation set
 
-                                                          # predict on validation set
-                                                          preds_validation <- try(predict_func(fit_obj,
-                                                                                               newdata = x_validation),
-                                                                                  silent = TRUE)
+                                                   # predict on validation set
+                                                   preds_validation <- try(predict_func(fit_obj,
+                                                                                        newdata = x_validation),
+                                                                           silent = TRUE)
 
-                                                          if (class(preds_validation) == "try-error")
-                                                          {
-                                                            preds_validation <- try(predict_func(fit_obj,
-                                                                                                 newx = x_validation),
-                                                                                    silent = TRUE)
+                                                   if (class(preds_validation) == "try-error")
+                                                   {
+                                                     preds_validation <- try(predict_func(fit_obj,
+                                                                                          newx = x_validation),
+                                                                             silent = TRUE)
 
-                                                            if (class(preds_validation) == "try-error")
-                                                            {
-                                                              preds_validation <- rep(NA, length(y_validation))
-                                                            }
-                                                          }
+                                                     if (class(preds_validation) == "try-error")
+                                                     {
+                                                       preds_validation <- rep(NA, length(y_validation))
+                                                     }
+                                                   }
 
-                                                          # measure the validation error
-                                                          c(error_measure, eval_metric(preds_validation, y_validation))
-                                                        }
+                                                   # measure the validation error
+                                                   c(error_measure, eval_metric(preds_validation, y_validation))
+                                                 }
 
-                                                      }
+                                               }
 
                             }
     close(pb)
@@ -248,7 +248,7 @@ crossval <- function(x, y,
                                                                                                         y = y[train_index],
                                                                                                         ...)
 
-                                                         set.seed(seed) # in case the algo is random
+                                                         set.seed(seed) # in case the algo is randomized
                                                          fit_obj <- do.call(what = fit_func_train,
                                                                             args = c(list(x = x[train_index, ],
                                                                                           y = y[train_index]),
