@@ -332,12 +332,17 @@ crossval <- function(x, y,
       names(res) <- paste0(rep(c("fold_test_", "fold_validation_"), k), rep(1:k, each = 2))
     }
 
+    n_folds <- nrow(res)
+    train_test_df <- res[seq(2, n_folds, by = 2),]
+    validation_df <- res[seq(1, n_folds, by = 2),]
 
-    return(list(folds = res))
-    # ,
-    #             mean = colMeans(res, na.rm = TRUE),
-    #             sd = apply(res, 2, function (x) sd(x, na.rm = FALSE)),
-    #             median = apply(res, 2, function (x) median(x, na.rm = FALSE))))
+    return(list(folds = res,
+    mean_training = mean(train_test_df),
+    mean_validation = mean(validation_df),
+    sd_training = sd(train_test_df),
+    sd_validation = sd(validation_df),
+    median_training = median(train_test_df),
+    median_validation = median(validation_df)))
   }
 
 }
