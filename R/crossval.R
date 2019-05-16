@@ -326,15 +326,17 @@ crossval <- function(x, y,
     if (repeats > 1)
     {
       colnames(res) <- paste0("repeat_", 1:ncol(res))
-      rownames(res) <- paste0(rep(c("fold_test_", "fold_validation_"), k), rep(1:k, each = 2))
+      rownames(res) <- paste0(rep(c("fold_training_", "fold_validation_"), k),
+                              rep(1:k, each = 2))
     } else {
       res <- as.numeric(res)
-      names(res) <- paste0(rep(c("fold_test_", "fold_validation_"), k), rep(1:k, each = 2))
+      names(res) <- paste0(rep(c("fold_training_", "fold_validation_"), k),
+                           rep(1:k, each = 2))
     }
 
     n_folds <- nrow(res)
-    train_test_df <- res[seq(2, n_folds, by = 2),]
-    validation_df <- res[seq(1, n_folds, by = 2),]
+    train_test_df <- res[seq(1, n_folds, by = 2),]
+    validation_df <- res[seq(2, n_folds, by = 2),]
 
     return(list(folds = res,
     mean_training = mean(train_test_df),
