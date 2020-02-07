@@ -7,8 +7,10 @@ Generic R functions for cross-validation
 
 - __1st method__: from Github
 
+In R console:
+
 ```bash
-devtools::install_github(crossval)
+devtools::install_github("thierrymoudiki/crossval")
 ```
 
 - __2nd method__: from CRAN
@@ -137,6 +139,7 @@ crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
 
 Your contributions are welcome, and valuable. Please, make sure to __read__ the [Code of Conduct](CONTRIBUTING.md) first.
 
+If you're not comfortable with Git/Version Control yet, please use [this form](https://forms.gle/nuKYGVc2HPxPUDEz7).
 
 ### License
 
