@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+crossval.Rcheck/
+crossval*.tar.gz
+crossval*.tgz

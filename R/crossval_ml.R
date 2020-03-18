@@ -24,7 +24,7 @@
 #' rest of the results. The default value is "stop".
 #' @param packages character vector of packages that the tasks depend on
 #' @param verbose logical flag enabling verbose messages. This can be very useful for
-#' trouble shooting
+#' troubleshooting.
 #' @param show_progress show evolution of the algorithm
 #' @param ... additional parameters
 #'
@@ -42,7 +42,7 @@
 #'
 #'# linear model example -----
 #'
-#' crossval::crossval(x = X, y = y, k = 5, repeats = 3)
+#' crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3)
 #'
 #'
 #'# randomForest example -----
@@ -51,38 +51,38 @@
 #'
 #'# fit randomForest with mtry = 2
 #'
-#'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+#'crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
 #'                   fit_func = randomForest::randomForest, predict_func = predict,
 #'                   packages = "randomForest", fit_params = list(mtry = 2))
 #'
 #'# fit randomForest with mtry = 4
 #'
-#'crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+#'crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
 #'                   fit_func = randomForest::randomForest, predict_func = predict,
 #'                   packages = "randomForest", fit_params = list(mtry = 4))
 #'
 #'# fit randomForest with mtry = 4, with a validation set
 #'
-#'crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+#'crossval::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
 #'                   fit_func = randomForest::randomForest, predict_func = predict,
 #'                   packages = "randomForest", fit_params = list(mtry = 4))
 #'
-crossval <- function(x,
-                     y,
-                     fit_func = crossval::fit_lm,
-                     predict_func = crossval::predict_lm,
-                     fit_params = NULL,
-                     # and hyperparameters
-                     k = 5,
-                     repeats = 3,
-                     p = 1,
-                     seed = 123,
-                     eval_metric = NULL,
-                     cl = NULL,
-                     errorhandling = c('stop', 'remove', 'pass'),
-                     packages = c("stats", "Rcpp"),
-                     verbose = FALSE,
-                     show_progress = TRUE,
+crossval_ml <- function(x,
+                        y,
+                        fit_func = crossval::fit_lm,
+                        predict_func = crossval::predict_lm,
+                        fit_params = NULL,
+                        # and hyperparameters
+                        k = 5,
+                        repeats = 3,
+                        p = 1,
+                        seed = 123,
+                        eval_metric = NULL,
+                        cl = NULL,
+                        errorhandling = c('stop', 'remove', 'pass'),
+                        packages = c("stats", "Rcpp"),
+                        verbose = FALSE,
+                        show_progress = TRUE,
                      ...) {
   n_y <- length(y)
   stopifnot(n_y == nrow(x))
@@ -408,4 +408,4 @@ crossval <- function(x,
   }
 
 }
-compiler::cmpfun(crossval)
+compiler::cmpfun(crossval_ml)

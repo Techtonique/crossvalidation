@@ -9,6 +9,9 @@ predict_lm(fit_obj, newx, ...)
 \arguments{
 \item{...}{}
 }
+\value{
+
+}
 \description{
 Title
 }

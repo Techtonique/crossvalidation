@@ -9,6 +9,9 @@ fit_lm(x, y, ...)
 \arguments{
 \item{...}{}
 }
+\value{
+
+}
 \description{
 Title
 }

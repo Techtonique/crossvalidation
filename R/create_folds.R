@@ -37,5 +37,30 @@ create_folds <- function(y, k = 10)
 
 
   return(out)
+
 }
 create_folds <- compiler::cmpfun(create_folds)
+
+
+# borrowed from caret::createTimeSlices
+
+create_time_slices <- function(y, initial_window, horizon = 1,
+                               fixed_window = TRUE, skip = 0)
+{
+  stops <- seq(initial_window, (length(y) - horizon), by = skip +
+                 1)
+  if (fixed_window) {
+    starts <- stops - initial_window + 1
+  }
+  else {
+    starts <- rep(1, length(stops))
+  }
+  train <- mapply(seq, starts, stops, SIMPLIFY = FALSE)
+  test <- mapply(seq, stops + 1, stops + horizon, SIMPLIFY = FALSE)
+  nums <- gsub(" ", "0", format(stops))
+  names(train) <- paste("training", nums, sep = "")
+  names(test) <- paste("testing", nums, sep = "")
+  out <- list(train = train, test = test)
+  out
+}
+create_time_slices  <- compiler::cmpfun(create_time_slices)
