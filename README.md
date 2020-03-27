@@ -41,11 +41,11 @@ Linear model
 
 # linear model example -----
 
-crossval::crossval(x = X, y = y, k = 5, repeats = 3)
+crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3)
 
 # linear model example, with validation set
 
-crossval::crossval(x = X, y = y, k = 5, repeats = 3, p = 0.8)
+crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3, p = 0.8)
 ```
 
 glmnet
@@ -58,19 +58,19 @@ glmnet
 require(glmnet)
 require(Matrix)
 
- crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+ crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
  fit_func = glmnet::glmnet, predict_func = predict.glmnet,
  packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0.5, lambda = 0.1))
 
 # fit glmnet, with alpha = 0, lambda = 0.01
 
- crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+ crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
  fit_func = glmnet::glmnet, predict_func = predict.glmnet,
  packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
 
  # fit glmnet, with alpha = 0, lambda = 0.01, with validation set
 
- crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+ crossval::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
  fit_func = glmnet::glmnet, predict_func = predict.glmnet,
  packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
 ```
@@ -84,19 +84,19 @@ require(randomForest)
 
 # fit randomForest with mtry = 2
 
-crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
 fit_func = randomForest::randomForest, predict_func = predict,
 packages = "randomForest", fit_params = list(mtry = 2))
 
 # fit randomForest with mtry = 4
 
-crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
 fit_func = randomForest::randomForest, predict_func = predict,
 packages = "randomForest", fit_params = list(mtry = 4))
 
 # fit randomForest with mtry = 4, with validation set
 
-crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+crossval::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
 fit_func = randomForest::randomForest, predict_func = predict,
 packages = "randomForest", fit_params = list(mtry = 4))
 ```
@@ -115,24 +115,32 @@ f_xgboost <- function(x, y, ...) xgboost::xgboost(data = x, label = y, ...)
 
 # fit xgboost with nrounds = 5
 
-crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
   fit_func = f_xgboost, predict_func = predict,
    packages = "xgboost", fit_params = list(nrounds = 5,
    verbose = FALSE))
 
 # fit xgboost with nrounds = 10
 
-crossval::crossval(x = X, y = y, k = 5, repeats = 3,
+crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
   fit_func = f_xgboost, predict_func = predict,
    packages = "xgboost", fit_params = list(nrounds = 10,
    verbose = FALSE))
 
 # fit xgboost with nrounds = 10, with validation set
 
-crossval::crossval(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+crossval::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
   fit_func = f_xgboost, predict_func = predict,
    packages = "xgboost", fit_params = list(nrounds = 10,
    verbose = FALSE))
+```
+
+Theta method (time series)
+
+```R
+require(forecast)
+res <- crossval::crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = thetaf)
+print(colMeans(res))
 ```
 
 ### Contributing

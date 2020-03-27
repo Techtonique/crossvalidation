@@ -60,7 +60,7 @@ rest of the results. The default value is "stop".}
 \item{packages}{character vector of packages that the tasks depend on}
 
 \item{verbose}{logical flag enabling verbose messages. This can be very useful for
-trouble shooting}
+troubleshooting.}
 
 \item{show_progress}{show evolution of the algorithm}
 
@@ -76,7 +76,7 @@ Generic cross-validation for univariate time series
 
 
 require(forecast)
-
+data("AirPassengers")
 
 # Example 1 -----
 
@@ -111,8 +111,11 @@ print(colMeans(res))
 # Example 4 -----
 
 xreg <- cbind(1, 1:length(AirPassengers))
-res <- crossval_ts(y=AirPassengers, x=xreg,
-initial_window = 10)
+res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossval::fit_lm,
+predict_func = crossval::predict_lm,
+initial_window = 10,
+horizon = 3,
+fixed_window = TRUE)
 colMeans(res)
 
 }

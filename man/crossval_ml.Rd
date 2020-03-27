@@ -59,7 +59,7 @@ rest of the results. The default value is "stop".}
 \item{packages}{character vector of packages that the tasks depend on}
 
 \item{verbose}{logical flag enabling verbose messages. This can be very useful for
-trouble shooting}
+troubleshooting.}
 
 \item{show_progress}{show evolution of the algorithm}
 

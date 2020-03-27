@@ -34,7 +34,7 @@
 #'
 #'
 #' require(forecast)
-#'
+#' data("AirPassengers")
 #'
 #' # Example 1 -----
 #'
@@ -69,16 +69,22 @@
 #' # Example 4 -----
 #'
 #' xreg <- cbind(1, 1:length(AirPassengers))
-#' res <- crossval_ts(y=AirPassengers, x=xreg,
-#' initial_window = 10)
-#' colMeans(res)
+#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossval::fit_lm,
+#' predict_func = crossval::predict_lm,
+#' initial_window = 10,
+#' horizon = 3,
+#' fixed_window = TRUE)
+#' print(colMeans(res))
 #'
-crossval_ts <- function(y, x=NULL,
+crossval_ts <- function(y,
+                        x = NULL,
                         fit_func = crossval::fit_lm,
                         predict_func = crossval::predict_lm,
                         fcast_func = NULL,
-                        fit_params = NULL, # parameters of funcs
-                        initial_window = 5, horizon = 3,
+                        fit_params = NULL,
+                        # parameters of funcs
+                        initial_window = 5,
+                        horizon = 3,
                         fixed_window = TRUE,
                         seed = 123,
                         eval_metric = NULL,
@@ -87,18 +93,17 @@ crossval_ts <- function(y, x=NULL,
                         packages = c("stats", "Rcpp"),
                         verbose = FALSE,
                         show_progress = TRUE,
-                         ...) {
-
+                        ...) {
   n_y <- length(y)
-  time_slices <- crossval::create_time_slices(y, initial_window = initial_window,
-                                              horizon = horizon,
-                                              fixed_window = fixed_window)
+  time_slices <-
+    crossval::create_time_slices(
+      y,
+      initial_window = initial_window,
+      horizon = horizon,
+      fixed_window = fixed_window
+    )
   n_slices <- length(time_slices$train)
 
-  # fcast_func <- function (y, h)
-  # {
-  #   forecast::forecast(forecast::ets(y), h=h)$mean
-  # }
 
   if (!is.null(x))
   {
@@ -112,13 +117,15 @@ crossval_ts <- function(y, x=NULL,
     eval_metric <- function(predicted, observed)
     {
       error <- observed - predicted
-      pe <- predicted/observed - 1
+      pe <- predicted / observed - 1
 
-      res <- c(mean(error, na.rm = FALSE),
-               sqrt(mean(error^2, na.rm = FALSE)),
-               mean(abs(error), na.rm = FALSE),
-               mean(pe, na.rm = FALSE),
-               mean(abs(pe), na.rm = FALSE))
+      res <- c(
+        mean(error, na.rm = FALSE),
+        sqrt(mean(error ^ 2, na.rm = FALSE)),
+        mean(abs(error), na.rm = FALSE),
+        mean(pe, na.rm = FALSE),
+        mean(abs(pe), na.rm = FALSE)
+      )
 
       names(res) <- c("ME", "RMSE", "MAE", "MPE", "MAPE")
 
@@ -127,141 +134,223 @@ crossval_ts <- function(y, x=NULL,
     eval_metric <- compiler::cmpfun(eval_metric)
   }
 
-  if (!is.null(cl)){
-
+  if (!is.null(cl)) {
     # 1 - parallel execution --------------------------------------------------
 
-    pb <- txtProgressBar(min = 0, max = n_slices, style = 3)
-    progress <- function(n) utils::setTxtProgressBar(pb, n)
+    cl_SOCK <- parallel::makeCluster(cl, type = "SOCK")
+    doSNOW::registerDoSNOW(cl_SOCK)
+
+    pb <- txtProgressBar(min = 0,
+                         max = n_slices,
+                         style = 3)
+    progress <- function(n)
+      utils::setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
 
     `%op%` <- foreach::`%dopar%`
-    i <- NULL
-    res <- foreach::foreach(i = 1:n_slices, .packages = packages,
-                            .combine = rbind, .errorhandling = errorhandling,
-                            .options.snow = opts, .verbose = verbose)%op%{
 
+    if (!is.null(fcast_func)) {
+      # stopifnot(is.null(fit_func))
+      # stopifnot(is.null(predict_func))
+      #print("\n")
+      #base::message("Forecasting function...")
 
-                            }
-    close(pb)
-    snow::stopCluster(cl_SOCK)
+      # 1 - 1 interface for forecasting functions --------------------------------------------------
+
+      i <- NULL
+      res <- foreach::foreach(
+        i = 1:n_slices,
+        .packages = packages,
+        .combine = rbind,
+        .errorhandling = errorhandling,
+        .options.snow = opts,
+        .verbose = verbose
+      ) %op% {
+        train_index <- time_slices$train[[i]]
+        test_index <- time_slices$test[[i]]
+
+        if (is.null(ncol(y)))
+          # univariate
+        {
+          preds <- try(do.call(what = fcast_func,
+                               args = list(y = y[train_index],
+                                           h = horizon, ...))$mean,
+                       silent = FALSE)
+
+          if (class(preds) == "try-error")
+          {
+            preds <- rep(NA, length(test_index))
+          }
+
+          # measure the error
+          error_measure <-
+            eval_metric(preds, y[test_index])
+
+        } else {
+          # multivariate
+          # multivariate time series
+          # TODO
+          return(0)
+        }
+
+        if (show_progress)
+        {
+          setTxtProgressBar(pb, i)
+        }
+
+        error_measure
+
+      }
+      close(pb)
+      snow::stopCluster(cl_SOCK)
+
+    } else {
+      # 1 - 2 interface for ml function --------------------------------------------------
+
+      i <- NULL
+      res <- foreach::foreach(
+        i = 1:n_slices,
+        .packages = packages,
+        .combine = rbind,
+        .errorhandling = errorhandling,
+        .options.snow = opts,
+        .verbose = verbose
+      ) %op% {
+
+      }
+      close(pb)
+      snow::stopCluster(cl_SOCK)
+    }
 
   } else {
-
     # 2 - sequential execution --------------------------------------------------
 
     `%op%` <- foreach::`%do%`
     if (show_progress)
     {
-      pb <- txtProgressBar(min = 0, max = n_slices, style = 3)
+      pb <- txtProgressBar(min = 0,
+                           max = n_slices,
+                           style = 3)
     }
 
     i <- j <- NULL
 
-    if(!is.null(fcast_func)){
-
+    if (!is.null(fcast_func)) {
       # stopifnot(is.null(fit_func))
       # stopifnot(is.null(predict_func))
-      base::message("Forecasting function...")
+      #print("\n")
+      #base::message("Forecasting function...")
 
       # 2 - 1 interface for forecasting functions --------------------------------------------------
 
-      res <- foreach::foreach(i = 1:n_slices, .packages = packages,
-                              .combine = rbind, .verbose = FALSE,
-                              .errorhandling = errorhandling,
-                              .export = c("fcast_params"))%op%{
+      res <- foreach::foreach(
+        i = 1:n_slices,
+        .packages = packages,
+        .combine = rbind,
+        .verbose = FALSE,
+        .errorhandling = errorhandling,
+        .export = c("fcast_params")
+      ) %op% {
+        train_index <- time_slices$train[[i]]
+        test_index <- time_slices$test[[i]]
 
-                                train_index <- time_slices$train[[i]]
-                                test_index <- time_slices$test[[i]]
+        if (is.null(ncol(y)))
+          # univariate
+        {
+          preds <- try(do.call(what = fcast_func,
+                               args = list(y = y[train_index],
+                                           h = horizon, ...))$mean,
+                       silent = FALSE)
 
-                                if (is.null(ncol(y))) # univariate
-                                {
-                                  preds <- try(do.call(what = fcast_func,
-                                                       args = list(y = y[train_index],
-                                                                   h = horizon, ...))$mean,
-                                               silent = FALSE)
+          if (class(preds) == "try-error")
+          {
+            preds <- rep(NA, length(test_index))
+          }
 
-                                  if (class(preds) == "try-error")
-                                  {
-                                    preds <- rep(NA, length(test_index))
-                                  }
+          # measure the error
+          error_measure <-
+            eval_metric(preds, y[test_index])
 
-                                  # measure the error
-                                  error_measure <- eval_metric(preds, y[test_index])
+        } else {
+          # multivariate
+          # multivariate time series
+          # TODO
+          return(0)
+        }
 
-                                } else { # multivariate
-                                  # multivariate time series
-                                  # TODO
-                                  return(0)
-                                }
+        if (show_progress)
+        {
+          setTxtProgressBar(pb, i)
+        }
 
-                                if (show_progress)
-                                {
-                                  setTxtProgressBar(pb, i)
-                                }
-
-                                error_measure
-                              }
+        error_measure
+      }
 
 
     } else {
-
       # 2 - 2 interface for ml function --------------------------------------------------
 
       stopifnot(!is.null(x))
       stopifnot(is.null(fcast_func))
 
-      base::message("ML function...")
+      #print("\n")
+      #base::message("ML function...")
 
-      res <- foreach::foreach(i = 1:n_slices, .packages = packages,
-                              .combine = rbind, .verbose = FALSE,
-                              .errorhandling = errorhandling,
-                              .export = c("fcast_params"))%op%{
+      res <- foreach::foreach(
+        i = 1:n_slices,
+        .packages = packages,
+        .combine = rbind,
+        .verbose = FALSE,
+        .errorhandling = errorhandling,
+        .export = c("fcast_params")
+      ) %op% {
+        # predict
+        train_index <-
+          time_slices$train[[i]]
+        test_index <- time_slices$test[[i]]
 
-                                # predict
-                                train_index <- time_slices$train[[i]]
-                                test_index <- time_slices$test[[i]]
 
+        if (is.null(ncol(y)))
+        {
+          # univariate time series
+          fit_obj <-
+            do.call(what = fit_func,
+                    args = c(list(x = x[train_index, ],
+                                  y = y[train_index]),
+                             fit_params))
 
-                                if (is.null(ncol(y)))
-                                {
-                                  # univariate time series
-                                  fit_obj <-
-                                    do.call(what = fit_func,
-                                            args = c(list(x = x[train_index,],
-                                                          y = y[train_index]),
-                                                     fit_params))
+          # predict
+          preds <-
+            try(predict_func(fit_obj, newdata = x[test_index, ]),
+                silent = TRUE)
 
-                                  # predict
-                                  preds <- try(predict_func(fit_obj, newdata = x[test_index,]),
-                                        silent = TRUE)
+          if (class(preds) == "try-error")
+          {
+            preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
+                         silent = FALSE)
+            if (class(preds) == "try-error")
+            {
+              preds <- rep(NA, length(test_index))
+            }
+          }
 
-                                  if (class(preds) == "try-error")
-                                  {
-                                    preds <- try(predict_func(fit_obj, newx = x[test_index,]),
-                                                 silent = FALSE)
-                                    if (class(preds) == "try-error")
-                                    {
-                                      preds <- rep(NA, length(test_index))
-                                    }
-                                  }
+          # measure the error
+          error_measure <-
+            eval_metric(preds, y[test_index])
 
-                                  # measure the error
-                                  error_measure <- eval_metric(preds, y[test_index])
+        } else {
+          # multivariate time series
+          # TODO
+          return(0)
+        }
 
-                                } else {
-                                  # multivariate time series
-                                  # TODO
-                                  return(0)
-                                }
+        if (show_progress)
+        {
+          setTxtProgressBar(pb, i)
+        }
 
-                                if (show_progress)
-                                {
-                                  setTxtProgressBar(pb, i)
-                                }
-
-                                error_measure
-                              }
+        error_measure
+      }
 
 
     }
