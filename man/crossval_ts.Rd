@@ -116,6 +116,6 @@ predict_func = crossval::predict_lm,
 initial_window = 10,
 horizon = 3,
 fixed_window = TRUE)
-colMeans(res)
+print(colMeans(res))
 
 }

@@ -216,7 +216,52 @@ crossval_ts <- function(y,
         .options.snow = opts,
         .verbose = verbose
       ) %op% {
+        # predict
+        train_index <-
+          time_slices$train[[i]]
+        test_index <- time_slices$test[[i]]
 
+
+        if (is.null(ncol(y)))
+        {
+          # univariate time series
+          fit_obj <-
+            do.call(what = fit_func,
+                    args = c(list(x = x[train_index, ],
+                                  y = y[train_index]),
+                             fit_params))
+
+          # predict
+          preds <-
+            try(predict_func(fit_obj, newdata = x[test_index, ]),
+                silent = TRUE)
+
+          if (class(preds) == "try-error")
+          {
+            preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
+                         silent = FALSE)
+            if (class(preds) == "try-error")
+            {
+              preds <- rep(NA, length(test_index))
+            }
+          }
+
+          # measure the error
+          error_measure <-
+            eval_metric(preds, y[test_index])
+
+        } else {
+          # multivariate time series
+          # TODO
+          return(0)
+        }
+
+        if (show_progress)
+        {
+          setTxtProgressBar(pb, i)
+        }
+
+        error_measure
       }
       close(pb)
       snow::stopCluster(cl_SOCK)
