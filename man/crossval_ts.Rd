@@ -14,6 +14,7 @@ crossval_ts(
   initial_window = 5,
   horizon = 3,
   fixed_window = TRUE,
+  type_forecast = c("mean", "lower", "upper"),
   seed = 123,
   eval_metric = NULL,
   cl = NULL,
@@ -43,6 +44,8 @@ to \code{fit_func}}
 \item{horizon}{an integer; the number of consecutive values in test set sample}
 
 \item{fixed_window}{a boolean; if FALSE, all training samples start at 1}
+
+\item{type_forecast}{a string; "mean" for mean forecast, "lower", "upper" for lower and upper bounds respectively}
 
 \item{seed}{random seed for reproducibility of results}
 
@@ -116,6 +119,15 @@ predict_func = crossval::predict_lm,
 initial_window = 10,
 horizon = 3,
 fixed_window = TRUE)
+print(colMeans(res))
+
+
+# Example 5 -----
+
+res <- crossval_ts(y=AirPassengers, x=xreg, fcast_func = thetaf,
+initial_window = 10,
+horizon = 3,
+fixed_window = TRUE, type_forecast="lower")
 print(colMeans(res))
 
 }

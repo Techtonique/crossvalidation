@@ -12,6 +12,7 @@
 #' @param initial_window an integer; the initial number of consecutive values in each training set sample
 #' @param horizon an integer; the number of consecutive values in test set sample
 #' @param fixed_window a boolean; if FALSE, all training samples start at 1
+#' @param type_forecast a string; "mean" for mean forecast, "lower", "upper" for lower and upper bounds respectively
 #' @param seed random seed for reproducibility of results
 #' @param eval_metric a function measuring the test errors; if not provided: RMSE for regression and
 #' accuracy for classification
@@ -76,6 +77,15 @@
 #' fixed_window = TRUE)
 #' print(colMeans(res))
 #'
+#'
+#' # Example 5 -----
+#'
+#' res <- crossval_ts(y=AirPassengers, x=xreg, fcast_func = thetaf,
+#' initial_window = 10,
+#' horizon = 3,
+#' fixed_window = TRUE, type_forecast="lower")
+#' print(colMeans(res))
+#'
 crossval_ts <- function(y,
                         x = NULL,
                         fit_func = crossval::fit_lm,
@@ -86,6 +96,7 @@ crossval_ts <- function(y,
                         initial_window = 5,
                         horizon = 3,
                         fixed_window = TRUE,
+                        type_forecast = c("mean", "lower", "upper"),
                         seed = 123,
                         eval_metric = NULL,
                         cl = NULL,
@@ -103,7 +114,7 @@ crossval_ts <- function(y,
       fixed_window = fixed_window
     )
   n_slices <- length(time_slices$train)
-
+  type_forecast <- match.arg(type_forecast)
 
   if (!is.null(x))
   {
@@ -135,6 +146,8 @@ crossval_ts <- function(y,
   }
 
   if (!is.null(cl)) {
+
+
     # 1 - parallel execution --------------------------------------------------
 
     cl_SOCK <- parallel::makeCluster(cl, type = "SOCK")
@@ -155,6 +168,7 @@ crossval_ts <- function(y,
       #print("\n")
       #base::message("Forecasting function...")
 
+
       # 1 - 1 interface for forecasting functions --------------------------------------------------
 
       i <- NULL
@@ -166,18 +180,25 @@ crossval_ts <- function(y,
         .options.snow = opts,
         .verbose = verbose
       ) %op% {
+
         train_index <- time_slices$train[[i]]
         test_index <- time_slices$test[[i]]
 
         if (is.null(ncol(y)))
-          # univariate
-        {
-          preds <- try(do.call(what = fcast_func,
-                               args = list(y = y[train_index],
-                                           h = horizon, ...))$mean,
-                       silent = FALSE)
+        { # univariate
+          preds <- switch(type_forecast,
+                          "mean" = try(do.call(what = fcast_func,
+                                               args = list(y = y[train_index],
+                                               h = horizon, ...))$mean, silent = FALSE),
+                          "lower" = try(do.call(what = fcast_func,
+                                                args = list(y = y[train_index],
+                                                            h = horizon, ...))$lower, silent = FALSE),
+                          "upper" = try(do.call(what = fcast_func,
+                                                args = list(y = y[train_index],
+                                                            h = horizon, ...))$upper, silent = FALSE))
 
-          if (class(preds) == "try-error")
+
+          if (class(preds)[1] == "try-error")
           {
             preds <- rep(NA, length(test_index))
           }
@@ -205,6 +226,8 @@ crossval_ts <- function(y,
       snow::stopCluster(cl_SOCK)
 
     } else {
+
+
       # 1 - 2 interface for ml function --------------------------------------------------
 
       i <- NULL
@@ -236,7 +259,7 @@ crossval_ts <- function(y,
             try(predict_func(fit_obj, newdata = x[test_index, ]),
                 silent = TRUE)
 
-          if (class(preds) == "try-error")
+          if (class(preds)[1] == "try-error")
           {
             preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
                          silent = FALSE)
@@ -251,6 +274,7 @@ crossval_ts <- function(y,
             eval_metric(preds, y[test_index])
 
         } else {
+
           # multivariate time series
           # TODO
           return(0)
@@ -268,6 +292,8 @@ crossval_ts <- function(y,
     }
 
   } else {
+
+
     # 2 - sequential execution --------------------------------------------------
 
     `%op%` <- foreach::`%do%`
@@ -286,6 +312,7 @@ crossval_ts <- function(y,
       #print("\n")
       #base::message("Forecasting function...")
 
+
       # 2 - 1 interface for forecasting functions --------------------------------------------------
 
       res <- foreach::foreach(
@@ -302,12 +329,22 @@ crossval_ts <- function(y,
         if (is.null(ncol(y)))
           # univariate
         {
-          preds <- try(do.call(what = fcast_func,
-                               args = list(y = y[train_index],
-                                           h = horizon, ...))$mean,
-                       silent = FALSE)
+          preds <- switch(type_forecast,
+                          "mean" = try(do.call(what = fcast_func,
+                                               args = list(y = y[train_index],
+                                                           h = horizon, ...))$mean,
+                                       silent = FALSE),
+                          "lower" = try(do.call(what = fcast_func,
+                                                args = list(y = y[train_index],
+                                                            h = horizon, ...))$lower,
+                                        silent = FALSE),
+                          "upper" = try(do.call(what = fcast_func,
+                                                args = list(y = y[train_index],
+                                                            h = horizon, ...))$upper,
+                                        silent = FALSE))
 
-          if (class(preds) == "try-error")
+
+          if (class(preds)[1] == "try-error")
           {
             preds <- rep(NA, length(test_index))
           }
@@ -333,6 +370,8 @@ crossval_ts <- function(y,
 
 
     } else {
+
+
       # 2 - 2 interface for ml function --------------------------------------------------
 
       stopifnot(!is.null(x))
