@@ -39,7 +39,7 @@ res3 <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = fcast_fun
 xreg <- cbind(1, 1:length(AirPassengers))
 res4 <- crossval_ts(y=AirPassengers, x=xreg, fcast_func = thetaf,
                     initial_window = 10, horizon = 3,
-                    fixed_window = TRUE, type_forecast="lower")
+                    fixed_window = TRUE, type_forecast="quantiles")
 
 
 mean1 <- colMeans(res1)
@@ -57,7 +57,7 @@ test_that("tests on mean RMSE and MAPE", {
   expect_equal(as.numeric(round(mean2["MAPE"], 2)), 0.15)
   expect_equal(as.numeric(round(mean3["RMSE"], 2)), 45.34)
   expect_equal(as.numeric(round(mean3["MAPE"], 2)), 0.14)
-  expect_equal(as.numeric(round(mean4["RMSE"], 2)), 88.01)
-  expect_equal(as.numeric(round(mean4["MAPE"], 2)), 0.27)
+  expect_equal(as.numeric(round(mean4["RMSE"], 2)), 86.13)
+  expect_equal(as.numeric(round(mean4["MAPE"], 2)), 0.24)
 })
 

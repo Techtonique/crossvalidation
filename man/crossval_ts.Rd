@@ -14,7 +14,8 @@ crossval_ts(
   initial_window = 5,
   horizon = 3,
   fixed_window = TRUE,
-  type_forecast = c("mean", "lower", "upper"),
+  type_forecast = c("mean", "quantiles"),
+  level = c(80, 95),
   seed = 123,
   eval_metric = NULL,
   cl = NULL,
@@ -46,6 +47,8 @@ to \code{fit_func}}
 \item{fixed_window}{a boolean; if FALSE, all training samples start at 1}
 
 \item{type_forecast}{a string; "mean" for mean forecast, "lower", "upper" for lower and upper bounds respectively}
+
+\item{level}{a numeric vector; confidence levels for prediction intervals.}
 
 \item{seed}{random seed for reproducibility of results}
 
@@ -127,7 +130,19 @@ print(colMeans(res))
 res <- crossval_ts(y=AirPassengers, x=xreg, fcast_func = thetaf,
 initial_window = 10,
 horizon = 3,
-fixed_window = TRUE, type_forecast="lower")
+fixed_window = TRUE, type_forecast="quantiles")
 print(colMeans(res))
+
+
+#' # Example 6 -----
+
+xreg <- cbind(1, 1:length(AirPassengers))
+res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossval::fit_lm,
+predict_func = crossval::predict_lm,
+initial_window = 10,
+horizon = 3,
+fixed_window = TRUE, type_forecast="quantiles")
+print(colMeans(res))
+
 
 }

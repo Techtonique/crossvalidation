@@ -13,6 +13,7 @@
 #' @param horizon an integer; the number of consecutive values in test set sample
 #' @param fixed_window a boolean; if FALSE, all training samples start at 1
 #' @param type_forecast a string; "mean" for mean forecast, "lower", "upper" for lower and upper bounds respectively
+#' @param level a numeric vector; confidence levels for prediction intervals.
 #' @param seed random seed for reproducibility of results
 #' @param eval_metric a function measuring the test errors; if not provided: RMSE for regression and
 #' accuracy for classification
@@ -83,8 +84,20 @@
 #' res <- crossval_ts(y=AirPassengers, x=xreg, fcast_func = thetaf,
 #' initial_window = 10,
 #' horizon = 3,
-#' fixed_window = TRUE, type_forecast="lower")
+#' fixed_window = TRUE, type_forecast="quantiles")
 #' print(colMeans(res))
+#'
+#'
+#'#' # Example 6 -----
+#'
+#' xreg <- cbind(1, 1:length(AirPassengers))
+#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossval::fit_lm,
+#' predict_func = crossval::predict_lm,
+#' initial_window = 10,
+#' horizon = 3,
+#' fixed_window = TRUE, type_forecast="quantiles")
+#' print(colMeans(res))
+#'
 #'
 crossval_ts <- function(y,
                         x = NULL,
@@ -96,7 +109,8 @@ crossval_ts <- function(y,
                         initial_window = 5,
                         horizon = 3,
                         fixed_window = TRUE,
-                        type_forecast = c("mean", "lower", "upper"),
+                        type_forecast = c("mean", "quantiles"),
+                        level = c(80, 95),
                         seed = 123,
                         eval_metric = NULL,
                         cl = NULL,
@@ -163,11 +177,6 @@ crossval_ts <- function(y,
     `%op%` <- foreach::`%dopar%`
 
     if (!is.null(fcast_func)) {
-      # stopifnot(is.null(fit_func))
-      # stopifnot(is.null(predict_func))
-      #print("\n")
-      #base::message("Forecasting function...")
-
 
       # 1 - 1 interface for forecasting functions --------------------------------------------------
 
@@ -185,22 +194,35 @@ crossval_ts <- function(y,
         test_index <- time_slices$test[[i]]
 
         if (is.null(ncol(y)))
-        { # univariate
+        {
+          # univariate
           preds <- switch(type_forecast,
                           "mean" = try(do.call(what = fcast_func,
                                                args = list(y = y[train_index],
                                                h = horizon, ...))$mean, silent = FALSE),
-                          "lower" = try(do.call(what = fcast_func,
-                                                args = list(y = y[train_index],
-                                                            h = horizon, ...))$lower, silent = FALSE),
-                          "upper" = try(do.call(what = fcast_func,
-                                                args = list(y = y[train_index],
-                                                            h = horizon, ...))$upper, silent = FALSE))
+                          "quantiles" = try(do.call(what = fcast_func,
+                                                    args = list(y = y[train_index],
+                                                            h = horizon,
+                                                            level = level,
+                                                            ...)),
+                                            silent = FALSE))
+
+          if (type_forecast == "quantiles")
+          {
+            upper_qs <- 100 - (100 - level)/2
+            lower_qs <- rev(100 - upper_qs)
+            qlist <- c(lower_qs, 50, upper_qs)/100
+            nqs <- length(qlist)
+            preds <- cbind(preds$lower[, ncol(preds$lower):1], preds$mean, preds$upper)
+            colnames(preds) <- paste0("q", qlist)
+          }
 
 
           if (class(preds)[1] == "try-error")
           {
-            preds <- rep(NA, length(test_index))
+            preds <- ifelse(type_forecast == "mean",
+                            rep(NA, horizon),
+                            matrix(NA, nrow = horizon, ncol = nqs))
           }
 
           # measure the error
@@ -334,19 +356,30 @@ crossval_ts <- function(y,
                                                args = list(y = y[train_index],
                                                            h = horizon, ...))$mean,
                                        silent = FALSE),
-                          "lower" = try(do.call(what = fcast_func,
-                                                args = list(y = y[train_index],
-                                                            h = horizon, ...))$lower,
-                                        silent = FALSE),
-                          "upper" = try(do.call(what = fcast_func,
-                                                args = list(y = y[train_index],
-                                                            h = horizon, ...))$upper,
+                          "quantiles" = try(do.call(what = fcast_func,
+                                                    args = list(y = y[train_index],
+                                                            h = horizon,
+                                                            level = level,
+                                                            ...)),
                                         silent = FALSE))
+
+
+          if (type_forecast == "quantiles")
+          {
+            upper_qs <- 100 - (100 - level)/2
+            lower_qs <- rev(100 - upper_qs)
+            qlist <- c(lower_qs, 50, upper_qs)/100
+            nqs <- length(qlist)
+            preds <- cbind(preds$lower[, ncol(preds$lower):1], preds$mean, preds$upper)
+            colnames(preds) <- paste0("q", qlist)
+          }
 
 
           if (class(preds)[1] == "try-error")
           {
-            preds <- rep(NA, length(test_index))
+            preds <- ifelse(type_forecast == "mean",
+                            rep(NA, horizon),
+                            matrix(NA, nrow = horizon, ncol = nqs))
           }
 
           # measure the error
