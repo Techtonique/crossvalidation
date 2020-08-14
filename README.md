@@ -1,3 +1,8 @@
+**WARNING:** This repository is no longer updated, and is now transferred under [Techtonique
+/
+cross_val](https://github.com/Techtonique/cross_val)
+
+
 # crossval
 
 Generic R functions for cross-validation 
