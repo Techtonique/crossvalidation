@@ -8,6 +8,6 @@ Description: This package offers generic functions for cross-validation of Stati
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Suggests: 
     testthat

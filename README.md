@@ -1,7 +1,3 @@
-**WARNING:** This repository is no longer updated, and is now transferred under [Techtonique
-/
-cross_val](https://github.com/Techtonique/cross_val)
-
 
 # crossval
 
@@ -15,7 +11,7 @@ Generic R functions for cross-validation
 In R console:
 
 ```bash
-devtools::install_github("thierrymoudiki/crossval")
+devtools::install_github("Techtonique/crossval")
 ```
 
 - __2nd method__: from CRAN
