@@ -14,12 +14,6 @@ In R console:
 devtools::install_github("Techtonique/crossval")
 ```
 
-- __2nd method__: from CRAN
-
-```bash
-TODO
-```
-
 
 ### Demo
 
