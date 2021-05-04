@@ -209,17 +209,14 @@ crossval_ts <- function(y,
         preds <- switch(type_forecast,
                         "mean" = try(do.call(
                           what = fcast_func,
-                          # fcast_func must have args in h and level
-                          args = list(y = y[train_index], # y[train_index, ] # multivariate
-                                      h = horizon, ...)
-                        )$mean, silent = FALSE)
+                          args = c(list(y = y[train_index],
+                                      h = horizon), fit_params))$mean, silent = FALSE)
                         ,
                         "quantiles" = try(do.call(
                           what = fcast_func,
-                          args = list(y = y[train_index],
+                          args = c(list(y = y[train_index],
                                       h = horizon,
-                                      level = level, # diff with mean = levels
-                                      ...)
+                                      level = level, fit_params))
                         ),
                         silent = FALSE))
 
@@ -262,8 +259,8 @@ crossval_ts <- function(y,
                         "mean" = try(do.call(
                           what = fcast_func,
                           # fcast_func must have args in h and level
-                          args = list(y = y[train_index, ],
-                                      h = horizon, ...)
+                          args = c(list(y = y[train_index, ],
+                                      h = horizon), fit_params)
                         )$mean, silent = FALSE)
                         ,
                         "quantiles" = NULL) # quantiles not available yet
