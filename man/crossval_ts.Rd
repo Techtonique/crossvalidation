@@ -29,13 +29,13 @@ crossval_ts(
 \arguments{
 \item{y}{response time series; a vector}
 
-\item{x}{input covariates' matrix (optional)}
+\item{x}{input covariates' matrix (optional) for ML models}
 
-\item{fit_func}{a function for fitting the model}
+\item{fit_func}{a function for fitting the model (if validation of ML model)}
 
-\item{predict_func}{a function for predicting values from the model}
+\item{predict_func}{a function for predicting values from the model (if validation of ML model)}
 
-\item{fcast_func}{time series forecasting function}
+\item{fcast_func}{time series forecasting function (e.g forecast::thetaf)}
 
 \item{fit_params}{a list; additional (model-specific) parameters to be passed
 to \code{fit_func}}
@@ -86,7 +86,8 @@ data("AirPassengers")
 
 # Example 1 -----
 
-res <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = thetaf)
+res <- crossval_ts(y=AirPassengers, initial_window = 10,
+horizon = 3, fcast_func = forecast::thetaf)
 print(colMeans(res))
 
 
@@ -98,7 +99,7 @@ fcast_func <- function (y, h, ...)
       h=h, ...)
 }
 
-res <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = fcast_func)
+res <- crossval_ts(y=AirPassengers, initial_window = 10, horizon = 3, fcast_func = fcast_func)
 print(colMeans(res))
 
 
@@ -110,7 +111,8 @@ fcast_func <- function (y, h, ...)
       h=h, ...)
 }
 
-res <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = fcast_func)
+res <- crossval_ts(y=AirPassengers,
+initial_window = 10, horizon = 3, fcast_func = fcast_func)
 print(colMeans(res))
 
 
@@ -127,7 +129,7 @@ print(colMeans(res))
 
 # Example 5 -----
 
-res <- crossval_ts(y=AirPassengers, x=xreg, fcast_func = thetaf,
+res <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
 initial_window = 10,
 horizon = 3,
 fixed_window = TRUE, type_forecast="quantiles")
