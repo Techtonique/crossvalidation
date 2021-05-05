@@ -47,8 +47,15 @@ create_folds <- compiler::cmpfun(create_folds)
 create_time_slices <- function(y, initial_window, horizon = 1,
                                fixed_window = TRUE, skip = 0)
 {
-  stops <- seq(initial_window, (length(y) - horizon), by = skip +
-                 1)
+  if(!is.null(ncol(y)))
+  {
+    n_y <- dim(y)[1]
+  } else {
+    n_y <- length(y)
+  }
+
+  stops <- seq(initial_window, (n_y - horizon), by = skip + 1)
+
   if (fixed_window) {
     starts <- stops - initial_window + 1
   }
