@@ -27,15 +27,15 @@ crossval_ts(
 )
 }
 \arguments{
-\item{y}{response time series; a vector}
+\item{y}{response time series; a vector or a matrix}
 
-\item{x}{input covariates' matrix (optional)}
+\item{x}{input covariates' matrix (optional) for ML models}
 
-\item{fit_func}{a function for fitting the model}
+\item{fit_func}{a function for fitting the model (if validation of ML model)}
 
-\item{predict_func}{a function for predicting values from the model}
+\item{predict_func}{a function for predicting values from the model (if validation of ML model)}
 
-\item{fcast_func}{time series forecasting function}
+\item{fcast_func}{time series forecasting function (e.g forecast::thetaf)}
 
 \item{fit_params}{a list; additional (model-specific) parameters to be passed
 to \code{fit_func}}
@@ -76,7 +76,7 @@ troubleshooting.}
 
 }
 \description{
-Generic cross-validation for univariate time series
+Generic cross-validation for univariate and multivariate time series
 }
 \examples{
 
@@ -86,7 +86,8 @@ data("AirPassengers")
 
 # Example 1 -----
 
-res <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = thetaf)
+res <- crossval_ts(y=AirPassengers, initial_window = 10,
+horizon = 3, fcast_func = forecast::thetaf)
 print(colMeans(res))
 
 
@@ -98,7 +99,8 @@ fcast_func <- function (y, h, ...)
       h=h, ...)
 }
 
-res <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = fcast_func)
+res <- crossval_ts(y=AirPassengers, initial_window = 10, horizon = 3,
+fcast_func = fcast_func)
 print(colMeans(res))
 
 
@@ -110,7 +112,8 @@ fcast_func <- function (y, h, ...)
       h=h, ...)
 }
 
-res <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = fcast_func)
+res <- crossval_ts(y=AirPassengers,
+initial_window = 10, horizon = 3, fcast_func = fcast_func)
 print(colMeans(res))
 
 
@@ -127,7 +130,7 @@ print(colMeans(res))
 
 # Example 5 -----
 
-res <- crossval_ts(y=AirPassengers, x=xreg, fcast_func = thetaf,
+res <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
 initial_window = 10,
 horizon = 3,
 fixed_window = TRUE, type_forecast="quantiles")
@@ -143,6 +146,34 @@ initial_window = 10,
 horizon = 3,
 fixed_window = TRUE, type_forecast="quantiles")
 print(colMeans(res))
+
+
+# Example 7 -----
+
+x <- ts(matrix(rnorm(50), nrow = 25))
+
+fcast_func <- function(y, h = 5, type_forecast=c("mean", "median"))
+{
+ type_forecast <- match.arg(type_forecast)
+
+ if (type_forecast == "mean")
+ {
+  means <- colMeans(y)
+  return(list(mean = t(replicate(n = h, expr = means))))
+ } else {
+  medians <- apply(y, 2, median)
+  return(list(mean = t(replicate(n = h, expr = medians))))
+ }
+
+}
+
+print(fcast_func(x))
+
+res <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
+colMeans(res)
+
+res <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
+colMeans(res)
 
 
 }

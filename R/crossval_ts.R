@@ -1,12 +1,12 @@
 #' Generic cross-validation function for time series
 #'
-#' Generic cross-validation for univariate time series
+#' Generic cross-validation for univariate and multivariate time series
 #'
-#' @param y response time series; a vector
-#' @param x input covariates' matrix (optional)
-#' @param fit_func a function for fitting the model
-#' @param predict_func a function for predicting values from the model
-#' @param fcast_func time series forecasting function
+#' @param y response time series; a vector or a matrix
+#' @param x input covariates' matrix (optional) for ML models
+#' @param fit_func a function for fitting the model (if validation of ML model)
+#' @param predict_func a function for predicting values from the model (if validation of ML model)
+#' @param fcast_func time series forecasting function (e.g forecast::thetaf)
 #' @param fit_params a list; additional (model-specific) parameters to be passed
 #' to \code{fit_func}
 #' @param initial_window an integer; the initial number of consecutive values in each training set sample
@@ -40,7 +40,8 @@
 #'
 #' # Example 1 -----
 #'
-#' res <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = thetaf)
+#' res <- crossval_ts(y=AirPassengers, initial_window = 10,
+#' horizon = 3, fcast_func = forecast::thetaf)
 #' print(colMeans(res))
 #'
 #'
@@ -52,7 +53,8 @@
 #'       h=h, ...)
 #' }
 #'
-#' res <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = fcast_func)
+#' res <- crossval_ts(y=AirPassengers, initial_window = 10, horizon = 3,
+#' fcast_func = fcast_func)
 #' print(colMeans(res))
 #'
 #'
@@ -64,7 +66,8 @@
 #'       h=h, ...)
 #' }
 #'
-#' res <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = fcast_func)
+#' res <- crossval_ts(y=AirPassengers,
+#' initial_window = 10, horizon = 3, fcast_func = fcast_func)
 #' print(colMeans(res))
 #'
 #'
@@ -81,7 +84,7 @@
 #'
 #' # Example 5 -----
 #'
-#' res <- crossval_ts(y=AirPassengers, x=xreg, fcast_func = thetaf,
+#' res <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
 #' initial_window = 10,
 #' horizon = 3,
 #' fixed_window = TRUE, type_forecast="quantiles")
@@ -99,6 +102,34 @@
 #' print(colMeans(res))
 #'
 #'
+#' # Example 7 -----
+#'
+#' x <- ts(matrix(rnorm(50), nrow = 25))
+#'
+#' fcast_func <- function(y, h = 5, type_forecast=c("mean", "median"))
+#' {
+#'  type_forecast <- match.arg(type_forecast)
+#'
+#'  if (type_forecast == "mean")
+#'  {
+#'   means <- colMeans(y)
+#'   return(list(mean = t(replicate(n = h, expr = means))))
+#'  } else {
+#'   medians <- apply(y, 2, median)
+#'   return(list(mean = t(replicate(n = h, expr = medians))))
+#'  }
+#'
+#' }
+#'
+#' print(fcast_func(x))
+#'
+#' res <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
+#' colMeans(res)
+#'
+#' res <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
+#' colMeans(res)
+#'
+#'
 crossval_ts <- function(y,
                         x = NULL,
                         fit_func = crossval::fit_lm,
@@ -109,7 +140,7 @@ crossval_ts <- function(y,
                         initial_window = 5,
                         horizon = 3,
                         fixed_window = TRUE,
-                        type_forecast = c("mean", "quantiles"),
+                        type_forecast = c("mean", "quantiles"), # check the "quantiles" option
                         level = c(80, 95),
                         seed = 123,
                         eval_metric = NULL,
@@ -119,7 +150,13 @@ crossval_ts <- function(y,
                         verbose = FALSE,
                         show_progress = TRUE,
                         ...) {
-  n_y <- length(y)
+  if(!is.null(ncol(y)))
+  {
+    n_y <- dim(y)[1]
+  } else {
+    n_y <- length(y)
+  }
+
   time_slices <-
     crossval::create_time_slices(
       y,
@@ -127,16 +164,18 @@ crossval_ts <- function(y,
       horizon = horizon,
       fixed_window = fixed_window
     )
-  n_slices <- length(time_slices$train)
-  type_forecast <- match.arg(type_forecast)
 
-  if (!is.null(x))
+  n_slices <- length(time_slices$train)
+  type_forecast <- match.arg(type_forecast) # experimental with "quantiles" option
+
+  if (!is.null(x)) # regression, ML model
   {
     n_x <- dim(x)[1]
     p_x <- dim(x)[2]
     stopifnot(n_x == n_y)
   }
 
+  # performance measures
   if (is.null(eval_metric))
   {
     eval_metric <- function(predicted, observed)
@@ -159,325 +198,205 @@ crossval_ts <- function(y,
     eval_metric <- compiler::cmpfun(eval_metric)
   }
 
+  # progress bars
   if (!is.null(cl)) {
-
-
-    # 1 - parallel execution --------------------------------------------------
-
     cl_SOCK <- parallel::makeCluster(cl, type = "SOCK")
     doSNOW::registerDoSNOW(cl_SOCK)
-
-    pb <- txtProgressBar(min = 0,
-                         max = n_slices,
-                         style = 3)
-    progress <- function(n)
-      utils::setTxtProgressBar(pb, n)
-    opts <- list(progress = progress)
-
     `%op%` <- foreach::`%dopar%`
+  } else {
+    `%op%` <- foreach::`%do%`
+  }
 
-    if (!is.null(fcast_func)) {
+  pb <- txtProgressBar(min = 0,
+                       max = n_slices,
+                       style = 3)
+  progress <- function(n) {utils::setTxtProgressBar(pb, n)}
+  opts <- list(progress = progress)
 
-      # 1 - 1 interface for forecasting functions --------------------------------------------------
 
-      i <- NULL
-      res <- foreach::foreach(
-        i = 1:n_slices,
-        .packages = packages,
-        .combine = rbind,
-        .errorhandling = errorhandling,
-        .options.snow = opts,
-        .verbose = verbose
-      ) %op% {
+  if (!is.null(fcast_func)) {
 
-        train_index <- time_slices$train[[i]]
-        test_index <- time_slices$test[[i]]
+    # 1 - interface for forecasting functions --------------------------------------------------
 
-        if (is.null(ncol(y)))
+    i <- NULL
+    res <- foreach::foreach(
+      i = 1:n_slices,
+      .packages = packages,
+      .combine = rbind,
+      .errorhandling = errorhandling,
+      .options.snow = opts,
+      .verbose = verbose
+    ) %op% {
+
+      train_index <- time_slices$train[[i]]
+      test_index <- time_slices$test[[i]]
+
+      # 1 - 1 interface for forecasting functions: univariate --------------------------------------------------
+
+      if (is.null(ncol(y))) # univariate time series case
+      {
+        if (type_forecast == "mean")
         {
-          # univariate
           preds <- switch(type_forecast,
-                          "mean" = try(do.call(what = fcast_func,
-                                               args = list(y = y[train_index],
-                                               h = horizon, ...))$mean, silent = FALSE),
-                          "quantiles" = try(do.call(what = fcast_func,
-                                                    args = list(y = y[train_index],
-                                                            h = horizon,
-                                                            level = level,
-                                                            ...)),
-                                            silent = FALSE))
-
-          if (type_forecast == "quantiles")
-          {
-            upper_qs <- 100 - (100 - level)/2
-            lower_qs <- rev(100 - upper_qs)
-            qlist <- c(lower_qs, 50, upper_qs)/100
-            nqs <- length(qlist)
-            preds <- cbind(preds$lower[, ncol(preds$lower):1], preds$mean, preds$upper)
-            colnames(preds) <- paste0("q", qlist)
-          }
-
-
-          if (class(preds)[1] == "try-error")
-          {
-            preds <- ifelse(type_forecast == "mean",
-                            rep(NA, horizon),
-                            matrix(NA, nrow = horizon, ncol = nqs))
-          }
-
-          # measure the error
-          error_measure <-
-            eval_metric(preds, y[test_index])
-
+                          "mean" = try(do.call(
+                            what = fcast_func,
+                            args = c(list(y = y[train_index],
+                                          h = horizon), fit_params))$mean, silent = FALSE)
+                          ,
+                          "quantiles" = try(do.call(
+                            what = fcast_func,
+                            args = c(list(y = y[train_index],
+                                          h = horizon,
+                                          level = level), fit_params)), silent = FALSE))
         } else {
-          # multivariate
-          # multivariate time series
-          # TODO
-          return(0)
-        }
 
-        if (show_progress)
-        {
-          setTxtProgressBar(pb, i)
-        }
+          # if (type_forecast == "quantiles")
+          # to be checked again
+          upper_qs <- 100 - (100 - level)  /  2
+          lower_qs <- rev(100 - upper_qs)
+          qlist <- c(lower_qs, 50, upper_qs)  /  100
+          nqs <- length(qlist)
 
-        error_measure
-
-      }
-      close(pb)
-      snow::stopCluster(cl_SOCK)
-
-    } else {
-
-
-      # 1 - 2 interface for ml function --------------------------------------------------
-
-      i <- NULL
-      res <- foreach::foreach(
-        i = 1:n_slices,
-        .packages = packages,
-        .combine = rbind,
-        .errorhandling = errorhandling,
-        .options.snow = opts,
-        .verbose = verbose
-      ) %op% {
-        # predict
-        train_index <-
-          time_slices$train[[i]]
-        test_index <- time_slices$test[[i]]
-
-
-        if (is.null(ncol(y)))
-        {
-          # univariate time series
-          fit_obj <-
-            do.call(what = fit_func,
-                    args = c(list(x = x[train_index, ],
-                                  y = y[train_index]),
-                             fit_params))
-
-          # predict
+          # preds in this case will be:
+          #q0.025     q0.1     q0.5     q0.9   q0.975
+          #11 529.2090 560.6045 619.9121 679.2196 710.6152
           preds <-
-            try(predict_func(fit_obj, newdata = x[test_index, ]),
+            try(cbind(preds$lower[, ncol(preds$lower):1], preds$mean, preds$upper),
                 silent = TRUE)
-
-          if (class(preds)[1] == "try-error")
-          {
-            preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
-                         silent = FALSE)
-            if (class(preds) == "try-error")
-            {
-              preds <- rep(NA, length(test_index))
-            }
-          }
-
-          # measure the error
-          error_measure <-
-            eval_metric(preds, y[test_index])
-
-        } else {
-
-          # multivariate time series
-          # TODO
-          return(0)
+          try(colnames(preds) <- paste0("q", qlist), silent = TRUE)
         }
 
-        if (show_progress)
+        if (class(preds)[1] == "try-error")
         {
-          setTxtProgressBar(pb, i)
+          preds <- ifelse(
+            type_forecast == "mean",
+            rep(NA, horizon),
+            matrix(NA, nrow = horizon, ncol = nqs)
+          )
         }
 
-        error_measure
+        # measure the error
+        error_measure <-
+          eval_metric(preds, y[test_index]) # univariate; y[test_index, ]
+
+      } else { #multivariate time series case
+
+        # 1 - 2 interface for forecasting functions: multivariate --------------------------------------------------
+
+        preds <- switch(type_forecast,
+                        "mean" = try(do.call(
+                          what = fcast_func,
+                          args = c(list(y = y[train_index, ],
+                                        h = horizon), fit_params)
+                        )$mean, silent = FALSE)
+                        ,
+                        "quantiles" = NULL) # quantiles not available yet
+
+
+        if (class(preds)[1] == "try-error" | is.null(preds))
+        {
+          preds <- ifelse(
+            type_forecast == "mean",
+            rep(NA, horizon),
+            matrix(NA, nrow = horizon, ncol = nqs)
+          )
+        }
+
+        # measure the error
+        error_measure <-
+          eval_metric(preds, y[test_index, ])
+
       }
-      close(pb)
+
+      if (show_progress)
+      {
+        setTxtProgressBar(pb, i)
+      }
+
+      error_measure
+
+    }
+    close(pb)
+
+    if (!is.null(cl))
+    {
       snow::stopCluster(cl_SOCK)
     }
 
   } else {
 
+    # if fcast_func is NULL, ML models are used
 
-    # 2 - sequential execution --------------------------------------------------
+    stopifnot(!is.null(fit_func))
+    stopifnot(!is.null(predict_func))
 
-    `%op%` <- foreach::`%do%`
-    if (show_progress)
-    {
-      pb <- txtProgressBar(min = 0,
-                           max = n_slices,
-                           style = 3)
-    }
+    # 2 - interface for ml functions --------------------------------------------------
 
-    i <- j <- NULL
-
-    if (!is.null(fcast_func)) {
-      # stopifnot(is.null(fit_func))
-      # stopifnot(is.null(predict_func))
-      #print("\n")
-      #base::message("Forecasting function...")
-
-
-      # 2 - 1 interface for forecasting functions --------------------------------------------------
-
-      res <- foreach::foreach(
-        i = 1:n_slices,
-        .packages = packages,
-        .combine = rbind,
-        .verbose = FALSE,
-        .errorhandling = errorhandling,
-        .export = c("fcast_params")
-      ) %op% {
-        train_index <- time_slices$train[[i]]
-        test_index <- time_slices$test[[i]]
-
-        if (is.null(ncol(y)))
-          # univariate
-        {
-          preds <- switch(type_forecast,
-                          "mean" = try(do.call(what = fcast_func,
-                                               args = list(y = y[train_index],
-                                                           h = horizon, ...))$mean,
-                                       silent = FALSE),
-                          "quantiles" = try(do.call(what = fcast_func,
-                                                    args = list(y = y[train_index],
-                                                            h = horizon,
-                                                            level = level,
-                                                            ...)),
-                                        silent = FALSE))
+    i <- NULL
+    res <- foreach::foreach(
+      i = 1:n_slices,
+      .packages = packages,
+      .combine = rbind,
+      .errorhandling = errorhandling,
+      .options.snow = opts,
+      .verbose = verbose
+    ) %op% {
+      # predict
+      train_index <-
+        time_slices$train[[i]]
+      test_index <- time_slices$test[[i]]
 
 
-          if (type_forecast == "quantiles")
-          {
-            upper_qs <- 100 - (100 - level)/2
-            lower_qs <- rev(100 - upper_qs)
-            qlist <- c(lower_qs, 50, upper_qs)/100
-            nqs <- length(qlist)
-            preds <- cbind(preds$lower[, ncol(preds$lower):1], preds$mean, preds$upper)
-            colnames(preds) <- paste0("q", qlist)
-          }
+      if (is.null(ncol(y)))
+      {
+        # 2 - 1 interface for ml function: univariate --------------------------------------------------
+        fit_obj <-
+          do.call(what = fit_func,
+                  args = c(list(x = x[train_index,],
+                                y = y[train_index]),
+                           fit_params))
 
-
-          if (class(preds)[1] == "try-error")
-          {
-            preds <- ifelse(type_forecast == "mean",
-                            rep(NA, horizon),
-                            matrix(NA, nrow = horizon, ncol = nqs))
-          }
-
-          # measure the error
-          error_measure <-
-            eval_metric(preds, y[test_index])
-
-        } else {
-          # multivariate
-          # multivariate time series
-          # TODO
-          return(0)
-        }
-
-        if (show_progress)
-        {
-          setTxtProgressBar(pb, i)
-        }
-
-        error_measure
-      }
-
-
-    } else {
-
-
-      # 2 - 2 interface for ml function --------------------------------------------------
-
-      stopifnot(!is.null(x))
-      stopifnot(is.null(fcast_func))
-
-      #print("\n")
-      #base::message("ML function...")
-
-      res <- foreach::foreach(
-        i = 1:n_slices,
-        .packages = packages,
-        .combine = rbind,
-        .verbose = FALSE,
-        .errorhandling = errorhandling,
-        .export = c("fcast_params")
-      ) %op% {
         # predict
-        train_index <-
-          time_slices$train[[i]]
-        test_index <- time_slices$test[[i]]
+        preds <-
+          try(predict_func(fit_obj, newdata = x[test_index,]),
+              silent = TRUE)
 
-
-        if (is.null(ncol(y)))
+        if (class(preds)[1] == "try-error")
         {
-          # univariate time series
-          fit_obj <-
-            do.call(what = fit_func,
-                    args = c(list(x = x[train_index, ],
-                                  y = y[train_index]),
-                             fit_params))
-
-          # predict
-          preds <-
-            try(predict_func(fit_obj, newdata = x[test_index, ]),
-                silent = TRUE)
-
+          preds <- try(predict_func(fit_obj, newx = x[test_index,]),
+                       silent = FALSE)
           if (class(preds) == "try-error")
           {
-            preds <- try(predict_func(fit_obj, newx = x[test_index, ]),
-                         silent = FALSE)
-            if (class(preds) == "try-error")
-            {
-              preds <- rep(NA, length(test_index))
-            }
+            preds <- rep(NA, length(test_index))
           }
-
-          # measure the error
-          error_measure <-
-            eval_metric(preds, y[test_index])
-
-        } else {
-          # multivariate time series
-          # TODO
-          return(0)
         }
 
-        if (show_progress)
-        {
-          setTxtProgressBar(pb, i)
+        # measure the error
+        error_measure <-
+          eval_metric(preds, y[test_index])
+
+      } else {
+
+        # 2 - 2 interface for ml function: multivariate (ko so far) --------------------------------------------------
+        stop("Not implemented")
+
         }
 
-        error_measure
+      if (show_progress)
+      {
+        setTxtProgressBar(pb, i)
       }
 
-
+      error_measure
     }
-
-    if (show_progress)
+    close(pb)
+    if (!is.null(cl))
     {
-      close(pb)
+      snow::stopCluster(cl_SOCK)
     }
-
   }
+
+
 
   return(res)
 
