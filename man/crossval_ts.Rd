@@ -175,4 +175,5 @@ colMeans(res)
 res <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 colMeans(res)
 
+
 }

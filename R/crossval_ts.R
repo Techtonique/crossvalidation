@@ -129,6 +129,7 @@
 #' res <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 #' colMeans(res)
 #'
+#'
 crossval_ts <- function(y,
                         x = NULL,
                         fit_func = crossval::fit_lm,
@@ -323,7 +324,11 @@ crossval_ts <- function(y,
     }
 
   } else {
+
     # if fcast_func is NULL, ML models are used
+
+    stopifnot(!is.null(fit_func))
+    stopifnot(!is.null(predict_func))
 
     # 2 - interface for ml functions --------------------------------------------------
 
@@ -372,34 +377,10 @@ crossval_ts <- function(y,
 
       } else {
 
-        # 2 - 2 interface for ml function: multivariate --------------------------------------------------
+        # 2 - 2 interface for ml function: multivariate (ko so far) --------------------------------------------------
+        stop("Not implemented")
 
-        # multivariate time series
-        fit_obj <-
-          do.call(what = fit_func,
-                  args = c(list(x = x[train_index, ],
-                                y = y[train_index, ]),
-                           fit_params))
-
-        # predict
-        preds <-
-          try(predict_func(fit_obj, newdata = x[test_index,]),
-              silent = TRUE)
-
-        if (class(preds)[1] == "try-error")
-        {
-          preds <- try(predict_func(fit_obj, newx = x[test_index,]),
-                       silent = FALSE)
-          if (class(preds) == "try-error")
-          {
-            preds <- rep(NA, length(test_index))
-          }
         }
-
-        # measure the error
-        error_measure <-
-          eval_metric(preds, y[test_index, ]) # multivariate
-      }
 
       if (show_progress)
       {
