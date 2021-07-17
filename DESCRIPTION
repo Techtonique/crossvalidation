@@ -1,7 +1,7 @@
 Package: crossval
 Type: Package
 Title: Generic cross-validation functions
-Version: 0.2.0
+Version: 0.2.1
 Author: T. Moudiki
 Maintainer: T. Moudiki <thierry.moudiki@gmail.com>
 Description: This package offers generic functions for cross-validation of Statistical/Machine Learning models 
@@ -9,5 +9,8 @@ License: file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
+Imports: foreach
 Suggests: 
-    testthat
+    testthat,
+    forecast,
+    randomForest
