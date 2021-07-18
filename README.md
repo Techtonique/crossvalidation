@@ -6,11 +6,19 @@ Generic R functions for cross-validation
 
 ### Installation
 
-- __1st method__: from Github
+- __1st method__: from [R-universe](https://ropensci.org/r-universe/)
 
 In R console:
 
-```bash
+```R
+install.packages("crossvalidation", repos="https://techtonique.r-universe.dev")
+```
+
+- __2nd method__: from Github
+
+In R console:
+
+```R
 devtools::install_github("Techtonique/crossvalidation")
 ```
 
