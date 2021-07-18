@@ -47,6 +47,7 @@
 #'
 #' # Example 2 -----
 #'
+#' \dontrun{
 #' fcast_func <- function (y, h, ...)
 #' {
 #'       forecast::forecast(forecast::auto.arima(y, ...),
@@ -56,6 +57,7 @@
 #' res <- crossval_ts(y=AirPassengers, initial_window = 10, horizon = 3,
 #' fcast_func = fcast_func)
 #' print(colMeans(res))
+#' }
 #'
 #'
 #' # Example 3 -----
@@ -74,8 +76,8 @@
 #' # Example 4 -----
 #'
 #' xreg <- cbind(1, 1:length(AirPassengers))
-#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossval::fit_lm,
-#' predict_func = crossval::predict_lm,
+#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
+#' predict_func = crossvalidation::predict_lm,
 #' initial_window = 10,
 #' horizon = 3,
 #' fixed_window = TRUE)
@@ -94,8 +96,8 @@
 #'#' # Example 6 -----
 #'
 #' xreg <- cbind(1, 1:length(AirPassengers))
-#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossval::fit_lm,
-#' predict_func = crossval::predict_lm,
+#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
+#' predict_func = crossvalidation::predict_lm,
 #' initial_window = 10,
 #' horizon = 3,
 #' fixed_window = TRUE, type_forecast="quantiles")
@@ -123,17 +125,17 @@
 #'
 #' print(fcast_func(x))
 #'
-#' res <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
+#' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
 #' colMeans(res)
 #'
-#' res <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
+#' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 #' colMeans(res)
 #'
 #'
 crossval_ts <- function(y,
                         x = NULL,
-                        fit_func = crossval::fit_lm,
-                        predict_func = crossval::predict_lm,
+                        fit_func = crossvalidation::fit_lm,
+                        predict_func = crossvalidation::predict_lm,
                         fcast_func = NULL,
                         fit_params = NULL,
                         # parameters of funcs
@@ -158,7 +160,7 @@ crossval_ts <- function(y,
   }
 
   time_slices <-
-    crossval::create_time_slices(
+    crossvalidation::create_time_slices(
       y,
       initial_window = initial_window,
       horizon = horizon,

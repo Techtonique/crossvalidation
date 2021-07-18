@@ -1,4 +1,4 @@
 library(testthat)
-library(crossval)
+library(crossvalidation)
 
-test_check("crossval")
+test_check("crossvalidation")

@@ -2,7 +2,7 @@ context("Test on time series models")
 
 
 library(testthat)
-library(crossval)
+library(crossvalidation)
 library(forecast)
 
 
@@ -54,9 +54,9 @@ res3 <- crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = fcast_fun
 
  }
 
-res4 <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
+res4 <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
 
-res5 <- crossval::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
+res5 <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 
 
 

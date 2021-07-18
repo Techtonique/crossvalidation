@@ -7,8 +7,8 @@
 crossval_ml(
   x,
   y,
-  fit_func = crossval::fit_lm,
-  predict_func = crossval::predict_lm,
+  fit_func = crossvalidation::fit_lm,
+  predict_func = crossvalidation::predict_lm,
   fit_params = NULL,
   k = 5,
   repeats = 3,
@@ -82,7 +82,7 @@ y <- rnorm(n)
 
 # linear model example -----
 
-crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3)
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3)
 
 
 # randomForest example -----
@@ -91,20 +91,24 @@ require(randomForest)
 
 # fit randomForest with mtry = 2
 
-crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+\dontrun{
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
                   fit_func = randomForest::randomForest, predict_func = predict,
                   packages = "randomForest", fit_params = list(mtry = 2))
 
 # fit randomForest with mtry = 4
 
-crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
                   fit_func = randomForest::randomForest, predict_func = predict,
                   packages = "randomForest", fit_params = list(mtry = 4))
 
-# fit randomForest with mtry = 4, with a validation set
+fit randomForest with mtry = 4, with a validation set
 
-crossval::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
                   fit_func = randomForest::randomForest, predict_func = predict,
                   packages = "randomForest", fit_params = list(mtry = 4))
+
+}
+
 
 }

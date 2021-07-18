@@ -2,7 +2,7 @@ context("Test on ML models")
 
 
 library(testthat)
-library(crossval)
+library(crossvalidation)
 
 # dataset
 
@@ -13,7 +13,7 @@ library(crossval)
 
 # linear model example -----
 
-res1 <- crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3)
+res1 <- crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3)
 
 
 # randomForest example -----
@@ -22,19 +22,19 @@ require(randomForest)
 
 # fit randomForest with mtry = 2
 
-res2 <- crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+res2 <- crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
                    fit_func = randomForest::randomForest, predict_func = predict,
                    packages = "randomForest", fit_params = list(mtry = 2))
 
 # fit randomForest with mtry = 4
 
-res3 <- crossval::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+res3 <- crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
                    fit_func = randomForest::randomForest, predict_func = predict,
                    packages = "randomForest", fit_params = list(mtry = 4))
 
 # fit randomForest with mtry = 4, with a validation set
 
-res4 <- crossval::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+res4 <- crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
                    fit_func = randomForest::randomForest, predict_func = predict,
                    packages = "randomForest", fit_params = list(mtry = 4))
 
