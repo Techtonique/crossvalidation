@@ -14,4 +14,7 @@ Imports: foreach
 Suggests: 
     testthat,
     forecast,
-    randomForest
+    randomForest,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
