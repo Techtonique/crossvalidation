@@ -5,3 +5,4 @@
 crossval.Rcheck/
 crossval*.tar.gz
 crossval*.tgz
+inst/doc
