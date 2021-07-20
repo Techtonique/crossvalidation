@@ -117,6 +117,7 @@ crossval_ml <- function(x,
     {
       eval_metric <- function (preds, actual)
       {
+        stopifnot(length(preds) == length(actual))
         res <- mean(preds == actual)
         names(res) <- "accuracy"
         return(res)
@@ -127,6 +128,7 @@ crossval_ml <- function(x,
 
       eval_metric <- function (preds, actual)
       {
+        stopifnot(length(preds) == length(actual))
         res <- sqrt(mean((preds - actual) ^ 2))
         names(res) <- "rmse"
         return(res)
