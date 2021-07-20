@@ -11,7 +11,11 @@ Generic R functions for cross-validation
 In R console:
 
 ```R
-install.packages("crossvalidation", repos="https://techtonique.r-universe.dev")
+options(repos = c(
+    techtonique = 'https://techtonique.r-universe.dev',
+    CRAN = 'https://cloud.r-project.org'))
+    
+install.packages("crossvalidation")
 ```
 
 - __2nd method__: from Github
