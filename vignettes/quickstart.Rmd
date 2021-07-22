@@ -7,6 +7,10 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+Examples for regression, time series, and classification.
+
+## Regression
+
 ### Create a dataset
 
 ```R
@@ -124,10 +128,60 @@ crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
    verbose = FALSE))
 ```
 
+## Time series
+
 __Theta method (time series)__
 
 ```R
 require(forecast)
 res <- crossvalidation::crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = thetaf)
 print(colMeans(res))
+```
+
+## Classification
+
+```
+library(randomForest)
+```
+
+```R
+# Input data 
+
+# Transforming model response into a factor
+y <- as.factor(as.numeric(iris$Species))
+# Explanatory variables 
+X <- as.matrix(iris[, c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width")])
+```
+
+
+```R
+# 5-fold cross-validation repeated 3 times
+# default error metric, when y is a factor: accuracy
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+                             fit_func = randomForest::randomForest, 
+                             predict_func = predict,
+                             fit_params = list(mtry = 2),
+                             packages = "randomForest")
+
+```
+
+```R
+# We can specify custom error metrics for crossvalidation::crossval_ml
+# here, the error rate 
+eval_metric <- function (preds, actual)
+{
+ stopifnot(length(preds) == length(actual))
+  res <- 1-mean(preds == actual)
+  names(res) <- "error rate"
+  return(res)
+}
+
+# specify `eval_metric` argument for measuring the error rate
+# instead of the (default) accuracy 
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+                             fit_func = randomForest::randomForest, 
+                             predict_func = predict,
+                             fit_params = list(mtry = 2),
+                             packages = "randomForest", 
+                             eval_metric=eval_metric)
 ```
