@@ -1,4 +1,4 @@
-# `crossval` Code of Conduct
+# `crossvalidation` Code of Conduct
 
 ## 1. Purpose
 
