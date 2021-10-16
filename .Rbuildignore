@@ -3,3 +3,6 @@
 ^crossvalidation\.Rcheck$
 ^crossvalidation.*\.tar\.gz$
 ^crossvalidation.*\.tgz$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
