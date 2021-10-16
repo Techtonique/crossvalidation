@@ -12,7 +12,6 @@
 #' @param initial_window an integer; the initial number of consecutive values in each training set sample
 #' @param horizon an integer; the number of consecutive values in test set sample
 #' @param fixed_window a boolean; if FALSE, all training samples start at 1
-#' @param type_forecast a string; "mean" for mean forecast, "lower", "upper" for lower and upper bounds respectively
 #' @param level a numeric vector; confidence levels for prediction intervals.
 #' @param seed random seed for reproducibility of results
 #' @param eval_metric a function measuring the test errors; if not provided: RMSE for regression and
@@ -89,7 +88,7 @@
 #' res <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
 #' initial_window = 10,
 #' horizon = 3,
-#' fixed_window = TRUE, type_forecast="quantiles")
+#' fixed_window = TRUE)
 #' print(colMeans(res))
 #'
 #'
@@ -100,7 +99,7 @@
 #' predict_func = crossvalidation::predict_lm,
 #' initial_window = 10,
 #' horizon = 3,
-#' fixed_window = TRUE, type_forecast="quantiles")
+#' fixed_window = TRUE)
 #' print(colMeans(res))
 #'
 #'
@@ -131,6 +130,21 @@
 #' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 #' colMeans(res)
 #'
+#' # Example 8 -----
+#'
+#' eval_metric <- function(predicted, observed)
+#' {
+#'   error <- observed - predicted
+#'
+#'   res <- apply(error, 2, function(x) sqrt(mean(x ^ 2, na.rm = FALSE)))
+#'
+#'   return(res)
+#' }
+#'
+#' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
+#' eval_metric = eval_metric)
+#'
+#' colMeans(res)
 #'
 crossval_ts <- function(y,
                         x = NULL,
@@ -142,7 +156,6 @@ crossval_ts <- function(y,
                         initial_window = 5,
                         horizon = 3,
                         fixed_window = TRUE,
-                        type_forecast = c("mean", "quantiles"), # check the "quantiles" option
                         level = c(80, 95),
                         seed = 123,
                         eval_metric = NULL,
@@ -152,10 +165,10 @@ crossval_ts <- function(y,
                         verbose = FALSE,
                         show_progress = TRUE,
                         ...) {
-  if(!is.null(ncol(y)))
+  if(!is.null(ncol(y))) # multivariate time series input
   {
     n_y <- dim(y)[1]
-  } else {
+  } else { # univariate time series input
     n_y <- length(y)
   }
 
@@ -168,7 +181,6 @@ crossval_ts <- function(y,
     )
 
   n_slices <- length(time_slices$train)
-  type_forecast <- match.arg(type_forecast) # experimental with "quantiles" option
 
   if (!is.null(x)) # regression, ML model
   {
@@ -177,7 +189,7 @@ crossval_ts <- function(y,
     stopifnot(n_x == n_y)
   }
 
-  # performance measures
+  # performance metrics
   if (is.null(eval_metric))
   {
     eval_metric <- function(predicted, observed)
@@ -216,7 +228,7 @@ crossval_ts <- function(y,
   opts <- list(progress = progress)
 
 
-  if (!is.null(fcast_func)) {
+  if (!is.null(fcast_func)) { # if fcast_func is not NULL, ts models are used
 
     # 1 - interface for forecasting functions --------------------------------------------------
 
@@ -237,71 +249,32 @@ crossval_ts <- function(y,
 
       if (is.null(ncol(y))) # univariate time series case
       {
-        if (type_forecast == "mean")
-        {
-          preds <- switch(type_forecast,
-                          "mean" = try(do.call(
-                            what = fcast_func,
-                            args = c(list(y = y[train_index],
+       preds <- try(do.call(what = fcast_func,
+                               args = c(list(y = y[train_index],
                                           h = horizon), fit_params))$mean, silent = FALSE)
-                          ,
-                          "quantiles" = try(do.call(
-                            what = fcast_func,
-                            args = c(list(y = y[train_index],
-                                          h = horizon,
-                                          level = level), fit_params)), silent = FALSE))
-        } else {
-
-          # if (type_forecast == "quantiles")
-          # to be checked again
-          upper_qs <- 100 - (100 - level)  /  2
-          lower_qs <- rev(100 - upper_qs)
-          qlist <- c(lower_qs, 50, upper_qs)  /  100
-          nqs <- length(qlist)
-
-          # preds in this case will be:
-          #q0.025     q0.1     q0.5     q0.9   q0.975
-          #11 529.2090 560.6045 619.9121 679.2196 710.6152
-          preds <-
-            try(cbind(preds$lower[, ncol(preds$lower):1], preds$mean, preds$upper),
-                silent = TRUE)
-          try(colnames(preds) <- paste0("q", qlist), silent = TRUE)
-        }
 
         if (class(preds)[1] == "try-error")
         {
-          preds <- ifelse(
-            type_forecast == "mean",
-            rep(NA, horizon),
-            matrix(NA, nrow = horizon, ncol = nqs)
-          )
+          preds <- rep(NA, horizon)
         }
 
         # measure the error
         error_measure <-
-          eval_metric(preds, y[test_index]) # univariate; y[test_index, ]
+          eval_metric(preds, y[test_index]) # univariate
 
       } else { #multivariate time series case
 
         # 1 - 2 interface for forecasting functions: multivariate --------------------------------------------------
 
-        preds <- switch(type_forecast,
-                        "mean" = try(do.call(
+        preds <- try(do.call(
                           what = fcast_func,
                           args = c(list(y = y[train_index, ],
                                         h = horizon), fit_params)
                         )$mean, silent = FALSE)
-                        ,
-                        "quantiles" = NULL) # quantiles not available yet
-
 
         if (class(preds)[1] == "try-error" | is.null(preds))
         {
-          preds <- ifelse(
-            type_forecast == "mean",
-            rep(NA, horizon),
-            matrix(NA, nrow = horizon, ncol = nqs)
-          )
+          preds <- rep(NA, horizon)
         }
 
         # measure the error
@@ -325,9 +298,7 @@ crossval_ts <- function(y,
       snow::stopCluster(cl_SOCK)
     }
 
-  } else {
-
-    # if fcast_func is NULL, ML models are used
+  } else { # if fcast_func is NULL, ML models are used
 
     stopifnot(!is.null(fit_func))
     stopifnot(!is.null(predict_func))

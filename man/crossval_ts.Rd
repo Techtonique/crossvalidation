@@ -14,7 +14,6 @@ crossval_ts(
   initial_window = 5,
   horizon = 3,
   fixed_window = TRUE,
-  type_forecast = c("mean", "quantiles"),
   level = c(80, 95),
   seed = 123,
   eval_metric = NULL,
@@ -45,8 +44,6 @@ to \code{fit_func}}
 \item{horizon}{an integer; the number of consecutive values in test set sample}
 
 \item{fixed_window}{a boolean; if FALSE, all training samples start at 1}
-
-\item{type_forecast}{a string; "mean" for mean forecast, "lower", "upper" for lower and upper bounds respectively}
 
 \item{level}{a numeric vector; confidence levels for prediction intervals.}
 
@@ -135,7 +132,7 @@ print(colMeans(res))
 res <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
 initial_window = 10,
 horizon = 3,
-fixed_window = TRUE, type_forecast="quantiles")
+fixed_window = TRUE)
 print(colMeans(res))
 
 
@@ -146,7 +143,7 @@ res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
 predict_func = crossvalidation::predict_lm,
 initial_window = 10,
 horizon = 3,
-fixed_window = TRUE, type_forecast="quantiles")
+fixed_window = TRUE)
 print(colMeans(res))
 
 
