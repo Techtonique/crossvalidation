@@ -168,17 +168,26 @@ crossval_ts <- function(y,
   if(!is.null(ncol(y))) # multivariate time series input
   {
     n_y <- dim(y)[1]
-  } else { # univariate time series input
-    n_y <- length(y)
-  }
 
-  time_slices <-
-    crossvalidation::create_time_slices(
-      y,
-      initial_window = initial_window,
-      horizon = horizon,
-      fixed_window = fixed_window
-    )
+    time_slices <-
+      crossvalidation::create_time_slices(
+        y[, 1],
+        initial_window = initial_window,
+        horizon = horizon,
+        fixed_window = fixed_window
+      )
+  } else { # univariate time series input
+
+    n_y <- length(y)
+
+    time_slices <-
+      crossvalidation::create_time_slices(
+        y,
+        initial_window = initial_window,
+        horizon = horizon,
+        fixed_window = fixed_window
+      )
+  }
 
   n_slices <- length(time_slices$train)
 
@@ -221,11 +230,16 @@ crossval_ts <- function(y,
     `%op%` <- foreach::`%do%`
   }
 
-  pb <- txtProgressBar(min = 0,
-                       max = n_slices,
-                       style = 3)
-  progress <- function(n) {utils::setTxtProgressBar(pb, n)}
-  opts <- list(progress = progress)
+  if (show_progress)
+  {
+    pb <- txtProgressBar(min = 0,
+                         max = n_slices,
+                         style = 3)
+    progress <- function(n) {utils::setTxtProgressBar(pb, n)}
+    opts <- list(progress = progress)
+  } else {
+    opts <- NULL
+  }
 
 
   if (!is.null(fcast_func)) { # if fcast_func is not NULL, ts models are used
@@ -291,7 +305,11 @@ crossval_ts <- function(y,
       error_measure
 
     }
-    close(pb)
+
+    if (show_progress)
+    {
+      close(pb)
+    }
 
     if (!is.null(cl))
     {
@@ -362,7 +380,12 @@ crossval_ts <- function(y,
 
       error_measure
     }
-    close(pb)
+
+    if (show_progress)
+    {
+      close(pb)
+    }
+
     if (!is.null(cl))
     {
       snow::stopCluster(cl_SOCK)

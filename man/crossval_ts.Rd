@@ -174,5 +174,20 @@ colMeans(res)
 res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 colMeans(res)
 
+# Example 8 -----
+
+eval_metric <- function(predicted, observed)
+{
+  error <- observed - predicted
+
+  res <- apply(error, 2, function(x) sqrt(mean(x ^ 2, na.rm = FALSE)))
+
+  return(res)
+}
+
+res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
+eval_metric = eval_metric)
+
+colMeans(res)
 
 }
