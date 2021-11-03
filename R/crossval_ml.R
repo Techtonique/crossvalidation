@@ -153,12 +153,18 @@ crossval_ml <- function(x,
     `%op2%` <-  foreach::`%do%`
     nb_iter <- k * repeats
 
-    pb <- txtProgressBar(min = 0,
-                         max = k,
-                         style = 3)
-    progress <- function(n)
-      utils::setTxtProgressBar(pb, n)
-    opts <- list(progress = progress)
+    if (show_progress)
+    {
+      pb <- txtProgressBar(min = 0,
+                           max = k,
+                           style = 3)
+      progress <- function(n)
+        utils::setTxtProgressBar(pb, n)
+      opts <- list(progress = progress)
+    } else {
+      opts <- NULL
+    }
+
 
     i <- NULL
     j <- NULL
@@ -252,7 +258,10 @@ crossval_ml <- function(x,
       }
 
     }
-    close(pb)
+    if (show_progress)
+    {
+      close(pb)
+    }
     snow::stopCluster(cl_SOCK)
 
   }  else {
@@ -260,11 +269,14 @@ crossval_ml <- function(x,
 
     `%op%` <-  foreach::`%do%`
 
-    pb <- txtProgressBar(min = 0,
-                         max = k,
-                         style = 3)
-    progress <- function(n)
-      utils::setTxtProgressBar(pb, n)
+    if (show_progress)
+    {
+      pb <- txtProgressBar(min = 0,
+                           max = k,
+                           style = 3)
+      progress <- function(n)
+        utils::setTxtProgressBar(pb, n)
+    }
 
     i <- NULL
     res <- foreach::foreach(
