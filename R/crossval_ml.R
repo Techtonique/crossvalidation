@@ -10,7 +10,7 @@
 #' to \code{fit_func}
 #' @param k an integer; number of folds in k-fold cross validation
 #' @param repeats an integer; number of repeats for the k-fold cross validation
-#' @param p a double; proportion of data in the training/testing set, default is 1 and
+#' @param p a float; proportion of data in the training/testing set, default is 1 and
 #' must be > 0.5. If \code{p} < 1, a validation set error is calculated on the
 #' remaining 1-\code{p} fraction data
 #' @param seed random seed for reproducibility of results

@@ -1,6 +1,6 @@
-#' Generic cross-validation function for time series
+#' Rolling origin evaluation on validation set (time series)
 #'
-#' Generic cross-validation for univariate and multivariate time series
+#' Rolling origin evaluation on validation set (time series)
 #'
 #' @param y response time series; a vector or a matrix
 #' @param x input covariates' matrix (optional) for ML models
@@ -10,7 +10,8 @@
 #' @param fit_params a list; additional (model-specific) parameters to be passed
 #' to \code{fit_func}
 #' @param p a float; percentage of original data in the training/testing procedure, default is 1 and
-#' must be > 0.5.
+#' must be > 0.5. In addition, (1 - p)*length(y) is in the validation test. Must be the same in
+#' \code{crossval_ts} to avoid overlapping slices
 #' @param initial_window an integer; the initial number of consecutive values in each training set sample
 #' @param horizon an integer; the number of consecutive values in test set sample
 #' @param fixed_window a boolean; if FALSE, all training samples start at 1
@@ -41,7 +42,7 @@
 #'
 #' # Example 1 -----
 #'
-#' res <- crossval_ts(y=AirPassengers, initial_window = 10,
+#' res <- eval_ts(y=AirPassengers, initial_window = 10,
 #' horizon = 3, fcast_func = forecast::thetaf)
 #' print(colMeans(res))
 #'
@@ -55,7 +56,7 @@
 #'       h=h, ...)
 #' }
 #'
-#' res <- crossval_ts(y=AirPassengers, initial_window = 10, horizon = 3,
+#' res <- eval_ts(y=AirPassengers, initial_window = 10, horizon = 3,
 #' fcast_func = fcast_func)
 #' print(colMeans(res))
 #' }
@@ -69,7 +70,7 @@
 #'       h=h, ...)
 #' }
 #'
-#' res <- crossval_ts(y=AirPassengers,
+#' res <- eval_ts(y=AirPassengers,
 #' initial_window = 10, horizon = 3, fcast_func = fcast_func)
 #' print(colMeans(res))
 #'
@@ -77,7 +78,7 @@
 #' # Example 4 -----
 #'
 #' xreg <- cbind(1, 1:length(AirPassengers))
-#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
+#' res <- eval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
 #' predict_func = crossvalidation::predict_lm,
 #' initial_window = 10,
 #' horizon = 3,
@@ -87,7 +88,7 @@
 #'
 #' # Example 5 -----
 #'
-#' res <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
+#' res <- eval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
 #' initial_window = 10,
 #' horizon = 3,
 #' fixed_window = TRUE)
@@ -97,7 +98,7 @@
 #'#' # Example 6 -----
 #'
 #' xreg <- cbind(1, 1:length(AirPassengers))
-#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
+#' res <- eval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
 #' predict_func = crossvalidation::predict_lm,
 #' initial_window = 10,
 #' horizon = 3,
@@ -126,10 +127,10 @@
 #'
 #' print(fcast_func(x))
 #'
-#' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
+#' res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
 #' colMeans(res)
 #'
-#' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
+#' res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 #' colMeans(res)
 #'
 #' # Example 8 -----
@@ -143,94 +144,121 @@
 #'   return(res)
 #' }
 #'
-#' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
+#' res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
 #' eval_metric = eval_metric)
 #'
 #' colMeans(res)
 #'
-crossval_ts <- function(y,
-                        x = NULL,
-                        fit_func = crossvalidation::fit_lm,
-                        predict_func = crossvalidation::predict_lm,
-                        fcast_func = NULL,
-                        fit_params = NULL,
-                        p = 1,
-                        # parameters of funcs
-                        initial_window = 5,
-                        horizon = 3,
-                        fixed_window = TRUE,
-                        level = c(80, 95),
-                        seed = 123,
-                        eval_metric = NULL,
-                        cl = NULL,
-                        errorhandling = c('stop', 'remove', 'pass'),
-                        packages = c("stats", "Rcpp"),
-                        verbose = FALSE,
-                        show_progress = TRUE,
-                        ...) {
+eval_ts <- function(y,
+                    x = NULL,
+                    fit_func = crossvalidation::fit_lm,
+                    predict_func = crossvalidation::predict_lm,
+                    fcast_func = NULL,
+                    fit_params = NULL,
+                    p = 0.8,
+                    # parameters of funcs
+                    initial_window = 5,
+                    horizon = 3,
+                    fixed_window = TRUE,
+                    level = c(80, 95),
+                    seed = 123,
+                    eval_metric = NULL,
+                    cl = NULL,
+                    errorhandling = c('stop', 'remove', 'pass'),
+                    packages = c("stats", "Rcpp"),
+                    verbose = FALSE,
+                    show_progress = TRUE,
+                    ...) {
 
-  stopifnot(p <= 1 && p >= 0.5)
+  stopifnot(p < 1 && p >= 0.5)
 
-  if (p < 1) # cross validation on 1:floor(p*length(y)) indices
+  # define training set (to be excluded from  slices)
+  if(!is.null(ncol(y))) # multivariate input y
   {
-    if(!is.null(ncol(y))) # multivariate input y
+    if (is.ts(y))
     {
-      if (is.ts(y))
-      {
-        y <- ts(y[1:floor(p*nrow(y)), ],
-                start = start(y),
-                frequency = frequency(y))
-      } else {
-        y <- ts(y[1:floor(p*nrow(y)), ])
-      }
-    } else {# univariate input y
-      if (is.ts(y))
-      {
-        y <- ts(y[1:floor(p*length(y))],
-                start = start(y),
-                frequency = frequency(y))
-      } else {
-        y <- ts(y[1:floor(p*length(y))])
-      }
+      y_train <- ts(y[1:floor(p*nrow(y)), ],
+              start = start(y),
+              frequency = frequency(y))
+    } else {
+      y_train <- ts(y[1:floor(p*nrow(y)), ])
+    }
+  } else {# univariate input y
+    if (is.ts(y))
+    {
+      y_train <- ts(y[1:floor(p*length(y))],
+              start = start(y),
+              frequency = frequency(y))
+    } else {
+      y_train <- ts(y[1:floor(p*length(y))])
     }
   }
 
+  # time slices for the entire dataset
   if(!is.null(ncol(y))) # multivariate time series input
   {
-    n_y <- dim(y)[1]
+    #n_y <- dim(y)[1]
 
-    time_slices <-
+    time_slices_total <-
       crossvalidation::create_time_slices(
         y[, 1],
         initial_window = initial_window,
         horizon = horizon,
         fixed_window = fixed_window
       )
+
+    time_slices_train <-
+      crossvalidation::create_time_slices(
+        y_train[, 1],
+        initial_window = initial_window,
+        horizon = horizon,
+        fixed_window = fixed_window
+      )
+
   } else { # univariate time series input
 
-    n_y <- length(y)
+    #n_y <- length(y)
 
-    time_slices <-
+    time_slices_total <-
       crossvalidation::create_time_slices(
         y,
         initial_window = initial_window,
         horizon = horizon,
         fixed_window = fixed_window
       )
+
+    time_slices_train <-
+      crossvalidation::create_time_slices(
+        y_train,
+        initial_window = initial_window,
+        horizon = horizon,
+        fixed_window = fixed_window
+      )
   }
 
+  # cat("time_slices_total", "\n")
+  # print(time_slices_total$train)
+  # cat("time_slices_train", "\n")
+  # print(time_slices_train$train)
+  # cat("\n")
+
+  time_slices <- list()
+
+  time_slices$train <- time_slices_total$train[!(time_slices_total$train %in% time_slices_train$train)]
+
+  time_slices$test <- time_slices_total$test[!(time_slices_total$test %in% time_slices_train$test)]
+
+  # cat("time_slices", "\n")
+  # print(time_slices$train)
+  # cat("\n")
 
   n_slices <- length(time_slices$train)
 
   if (!is.null(x)) # regression, ML model
   {
-    if (p < 1)
-    {
-      x <- x[1:floor(p*nrow(x)), ]
-    }
     n_x <- dim(x)[1]
     p_x <- dim(x)[2]
-    stopifnot(n_x == n_y)
+   # stopifnot(n_x == n_y)
   }
 
   # performance metrics
@@ -297,17 +325,19 @@ crossval_ts <- function(y,
       # cat("train_index", "\n")
       # print(train_index)
       # cat("\n")
+      #
       # cat("test_index", "\n")
       # print(test_index)
       # cat("\n")
+
 
       # 1 - 1 interface for forecasting functions: univariate --------------------------------------------------
 
       if (is.null(ncol(y))) # univariate time series case
       {
-       preds <- try(do.call(what = fcast_func,
-                               args = c(list(y = y[train_index],
-                                          h = horizon), fit_params))$mean, silent = FALSE)
+        preds <- try(do.call(what = fcast_func,
+                             args = c(list(y = y[train_index],
+                                           h = horizon), fit_params))$mean, silent = FALSE)
 
         if (class(preds)[1] == "try-error")
         {
@@ -323,10 +353,10 @@ crossval_ts <- function(y,
         # 1 - 2 interface for forecasting functions: multivariate --------------------------------------------------
 
         preds <- try(do.call(
-                          what = fcast_func,
-                          args = c(list(y = y[train_index, ],
-                                        h = horizon), fit_params)
-                        )$mean, silent = FALSE)
+          what = fcast_func,
+          args = c(list(y = y[train_index, ],
+                        h = horizon), fit_params)
+        )$mean, silent = FALSE)
 
         if (class(preds)[1] == "try-error" | is.null(preds))
         {
@@ -413,7 +443,7 @@ crossval_ts <- function(y,
         # 2 - 2 interface for ml function: multivariate (ko so far) --------------------------------------------------
         stop("Not implemented")
 
-        }
+      }
 
       if (show_progress)
       {
@@ -439,4 +469,4 @@ crossval_ts <- function(y,
   return(res)
 
 }
-compiler::cmpfun(crossval_ts)
+compiler::cmpfun(eval_ts)
