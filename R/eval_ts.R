@@ -9,9 +9,7 @@
 #' @param fcast_func time series forecasting function (e.g forecast::thetaf)
 #' @param fit_params a list; additional (model-specific) parameters to be passed
 #' to \code{fit_func}
-#' @param p a float; percentage of original data in the training/testing procedure, default is 1 and
-#' must be > 0.5. In addition, (1 - p)*length(y) is in the validation test. Must be the same in
-#' \code{crossval_ts} to avoid overlapping slices
+#' @param q a float; percentage of original data in the validation test.
 #' @param initial_window an integer; the initial number of consecutive values in each training set sample
 #' @param horizon an integer; the number of consecutive values in test set sample
 #' @param fixed_window a boolean; if FALSE, all training samples start at 1
@@ -155,7 +153,7 @@ eval_ts <- function(y,
                     predict_func = crossvalidation::predict_lm,
                     fcast_func = NULL,
                     fit_params = NULL,
-                    p = 0.8,
+                    q = 0.2,
                     # parameters of funcs
                     initial_window = 5,
                     horizon = 3,
@@ -170,7 +168,9 @@ eval_ts <- function(y,
                     show_progress = TRUE,
                     ...) {
 
-  stopifnot(p < 1 && p >= 0.5)
+  p <- 1 - q
+
+  stopifnot(p < 1)
 
   # define training set (to be excluded from  slices)
   if(!is.null(ncol(y))) # multivariate input y
@@ -183,21 +183,6 @@ eval_ts <- function(y,
     } else {
       y_train <- ts(y[1:floor(p*nrow(y)), ])
     }
-  } else {# univariate input y
-    if (is.ts(y))
-    {
-      y_train <- ts(y[1:floor(p*length(y))],
-              start = start(y),
-              frequency = frequency(y))
-    } else {
-      y_train <- ts(y[1:floor(p*length(y))])
-    }
-  }
-
-  # time slices for the entire dataset
-  if(!is.null(ncol(y))) # multivariate time series input
-  {
-    #n_y <- dim(y)[1]
 
     time_slices_total <-
       crossvalidation::create_time_slices(
@@ -215,9 +200,16 @@ eval_ts <- function(y,
         fixed_window = fixed_window
       )
 
-  } else { # univariate time series input
+  } else { # univariate input y
 
-    #n_y <- length(y)
+    if (is.ts(y))
+    {
+      y_train <- ts(y[1:floor(p*length(y))],
+              start = start(y),
+              frequency = frequency(y))
+    } else {
+      y_train <- ts(y[1:floor(p*length(y))])
+    }
 
     time_slices_total <-
       crossvalidation::create_time_slices(

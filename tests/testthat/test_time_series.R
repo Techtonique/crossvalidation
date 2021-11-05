@@ -71,7 +71,8 @@ res7 <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func,
 
 set.seed(123)
 res8 <- eval_ts(y=rnorm(25), initial_window = 10,
-                horizon = 5, fcast_func = forecast::thetaf, show_progress = FALSE, p=0.8)
+                horizon = 5, fcast_func = forecast::thetaf,
+                show_progress = FALSE, q=0.2)
 
 # tests -----
 

@@ -11,7 +11,7 @@ eval_ts(
   predict_func = crossvalidation::predict_lm,
   fcast_func = NULL,
   fit_params = NULL,
-  p = 0.8,
+  q = 0.2,
   initial_window = 5,
   horizon = 3,
   fixed_window = TRUE,
@@ -40,9 +40,7 @@ eval_ts(
 \item{fit_params}{a list; additional (model-specific) parameters to be passed
 to \code{fit_func}}
 
-\item{p}{a float; percentage of original data in the training/testing procedure, default is 1 and
-must be > 0.5. In addition, (1 - p)*length(y) is in the validation test. Must be the same in
-\code{crossval_ts} to avoid overlapping slices}
+\item{q}{a float; percentage of original data in the validation test.}
 
 \item{initial_window}{an integer; the initial number of consecutive values in each training set sample}
 
