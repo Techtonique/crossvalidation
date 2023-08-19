@@ -1,29 +1,34 @@
-#' Title
+#' Fit linear model
 #'
-#' @param x
-#' @param y
-#' @param ...
+#' @param x design matrix of dimension n * p.
+#' @param y vector of observations of length n, or a matrix with n rows.
+#' @param ... additional parameters to be passed to .lm.fit
 #'
-#' @return
+#' @return a list
 #' @export
 #'
 #' @examples
+#'
+#' NULL
+#'
 fit_lm <- function(x, y, ...)
 {
   stats::.lm.fit(x = x, y = y, ...)
 }
 
-#' Title
+#' Linear model prediction
 #'
-#' @param fit_obj
-#' @param newx
-#' @param ...
+#' @param fit_obj object adjusted by \code{crossvalidation::fit_lm}
+#' @param newx unseen data
 #'
-#' @return
+#' @return a vector or a matrix
 #' @export
 #'
 #' @examples
-predict_lm <- function(fit_obj, newx, ...)
+#'
+#' NULL
+#'
+predict_lm <- function(fit_obj, newx)
 {
   drop(newx%*%fit_obj$coef)
 }
