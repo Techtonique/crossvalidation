@@ -2,16 +2,25 @@
 % Please edit documentation in R/lm.R
 \name{fit_lm}
 \alias{fit_lm}
-\title{Title}
+\title{Fit linear model}
 \usage{
 fit_lm(x, y, ...)
 }
 \arguments{
-\item{...}{}
+\item{x}{design matrix of dimension n * p.}
+
+\item{y}{vector of observations of length n, or a matrix with n rows.}
+
+\item{...}{additional parameters to be passed to .lm.fit}
 }
 \value{
-
+a list
 }
 \description{
-Title
+Fit linear model
+}
+\examples{
+
+NULL
+
 }

@@ -2,16 +2,23 @@
 % Please edit documentation in R/lm.R
 \name{predict_lm}
 \alias{predict_lm}
-\title{Title}
+\title{Linear model prediction}
 \usage{
-predict_lm(fit_obj, newx, ...)
+predict_lm(fit_obj, newx)
 }
 \arguments{
-\item{...}{}
+\item{fit_obj}{object adjusted by \code{crossvalidation::fit_lm}}
+
+\item{newx}{unseen data}
 }
 \value{
-
+a vector or a matrix
 }
 \description{
-Title
+Linear model prediction
+}
+\examples{
+
+NULL
+
 }
