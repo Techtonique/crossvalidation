@@ -73,9 +73,6 @@ troubleshooting.}
 
 \item{...}{additional parameters}
 }
-\value{
-
-}
 \description{
 Generic cross-validation for univariate and multivariate time series
 }

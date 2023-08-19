@@ -72,9 +72,6 @@ troubleshooting.}
 
 \item{...}{additional parameters}
 }
-\value{
-
-}
 \description{
 Rolling origin evaluation on validation set (time series)
 }
@@ -122,7 +119,8 @@ print(colMeans(res))
 # Example 4 -----
 
 xreg <- cbind(1, 1:length(AirPassengers))
-res <- eval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
+res <- eval_ts(y=AirPassengers, x=xreg,
+fit_func = crossvalidation::fit_lm,
 predict_func = crossvalidation::predict_lm,
 initial_window = 10,
 horizon = 3,
@@ -142,7 +140,8 @@ print(colMeans(res))
 #' # Example 6 -----
 
 xreg <- cbind(1, 1:length(AirPassengers))
-res <- eval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
+res <- eval_ts(y=AirPassengers, x=xreg,
+fit_func = crossvalidation::fit_lm,
 predict_func = crossvalidation::predict_lm,
 initial_window = 10,
 horizon = 3,
@@ -171,10 +170,12 @@ fcast_func <- function(y, h = 5, type_forecast=c("mean", "median"))
 
 print(fcast_func(x))
 
-res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
+res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func,
+fit_params = list(type_forecast = "median"))
 colMeans(res)
 
-res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
+res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func,
+fit_params = list(type_forecast = "mean"))
 colMeans(res)
 
 # Example 8 -----
@@ -188,8 +189,8 @@ eval_metric <- function(predicted, observed)
   return(res)
 }
 
-res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
-eval_metric = eval_metric)
+res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func,
+fit_params = list(type_forecast = "mean"), eval_metric = eval_metric)
 
 colMeans(res)
 

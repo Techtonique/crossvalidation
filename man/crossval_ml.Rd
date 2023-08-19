@@ -65,9 +65,6 @@ troubleshooting.}
 
 \item{...}{additional parameters}
 }
-\value{
-
-}
 \description{
 Generic cross-validation
 }
