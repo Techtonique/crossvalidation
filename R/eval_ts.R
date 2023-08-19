@@ -76,7 +76,8 @@
 #' # Example 4 -----
 #'
 #' xreg <- cbind(1, 1:length(AirPassengers))
-#' res <- eval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
+#' res <- eval_ts(y=AirPassengers, x=xreg,
+#' fit_func = crossvalidation::fit_lm,
 #' predict_func = crossvalidation::predict_lm,
 #' initial_window = 10,
 #' horizon = 3,
@@ -96,7 +97,8 @@
 #'#' # Example 6 -----
 #'
 #' xreg <- cbind(1, 1:length(AirPassengers))
-#' res <- eval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
+#' res <- eval_ts(y=AirPassengers, x=xreg,
+#' fit_func = crossvalidation::fit_lm,
 #' predict_func = crossvalidation::predict_lm,
 #' initial_window = 10,
 #' horizon = 3,
@@ -125,10 +127,12 @@
 #'
 #' print(fcast_func(x))
 #'
-#' res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
+#' res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func,
+#' fit_params = list(type_forecast = "median"))
 #' colMeans(res)
 #'
-#' res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
+#' res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func,
+#' fit_params = list(type_forecast = "mean"))
 #' colMeans(res)
 #'
 #' # Example 8 -----
@@ -142,8 +146,8 @@
 #'   return(res)
 #' }
 #'
-#' res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
-#' eval_metric = eval_metric)
+#' res <- crossvalidation::eval_ts(y = x, fcast_func = fcast_func,
+#' fit_params = list(type_forecast = "mean"), eval_metric = eval_metric)
 #'
 #' colMeans(res)
 #'
