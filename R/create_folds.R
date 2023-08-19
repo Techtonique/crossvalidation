@@ -43,7 +43,6 @@ create_folds <- compiler::cmpfun(create_folds)
 
 
 # borrowed from caret::createTimeSlices
-
 create_time_slices <- function(y, initial_window, horizon = 1,
                                fixed_window = TRUE, skip = 0)
 {
@@ -71,3 +70,50 @@ create_time_slices <- function(y, initial_window, horizon = 1,
   out
 }
 create_time_slices  <- compiler::cmpfun(create_time_slices)
+
+
+#' Split a time series
+#'
+#' @param y univariate or multivariate time series
+#' @param p proportion of data in training set
+#' @param return_indices return indices instead of time series?
+#'
+#' @return
+#' @export
+#'
+#' @examples
+split_ts <- function(y, p = 0.8, return_indices = FALSE)
+{
+  n_y <- base::ifelse(test = is.null(dim(y)),
+                      yes = length(y),
+                      no = dim(y)[1])
+
+  index_train <- 1:floor(p*n_y)
+  if (return_indices)
+    return(index_train)
+
+  start_y <- stats::start(y)
+  frequency_y <- stats::frequency(y)
+
+  if(is.null(ncol(y))) # univariate case
+  {
+    training <- ts(y[index_train],
+                   start = start_y,
+                   frequency = frequency_y)
+    start_testing <- tsp(training )[2] + 1 / frequency_y
+    return(list(training = training,
+                testing = ts(y[-index_train],
+                             start = start_testing,
+                             frequency = frequency_y)))
+  } else { # multivariate case
+    training <- ts(y[index_train, ],
+                   start = start_y,
+                   frequency = frequency_y)
+    start_testing <- tsp(training)[2] + 1 / frequency_y
+    return(list(training = training,
+                testing = ts(y[-index_train, ],
+                             start = start_testing,
+                             frequency = frequency_y)))
+  }
+}
+split_ts  <- compiler::cmpfun(split_ts)
