@@ -79,7 +79,8 @@ y <- rnorm(n)
 
 # linear model example -----
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3)
+crossvalidation::crossval_ml(x = X, y = y,
+                             k = 5L, repeats = 3L)
 
 
 # randomForest example -----
@@ -89,13 +90,13 @@ require(randomForest)
 # fit randomForest with mtry = 2
 
 \dontrun{
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+crossvalidation::crossval_ml(x = X, y = y, k = 5L, repeats = 3L,
                   fit_func = randomForest::randomForest, predict_func = predict,
                   packages = "randomForest", fit_params = list(mtry = 2))
 
 # fit randomForest with mtry = 4
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+crossvalidation::crossval_ml(x = X, y = y, k = 5L, repeats = 3L,
                   fit_func = randomForest::randomForest, predict_func = predict,
                   packages = "randomForest", fit_params = list(mtry = 4))
 

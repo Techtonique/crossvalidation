@@ -1,0 +1,24 @@
+#' Create a data structure of cross-validation results
+#'
+#' @param ... list of cross-validation results for multiple models
+#' @param model_names model names
+#'
+#' @return a data frame
+#' @export
+#'
+#' @examples
+create_samples <- function(...,
+                           model_names)
+{
+  stopifnot(!missing(model_names))
+  input_list <- list(...)
+  n_items <- length(input_list)
+  samples <- vector("list", n_items)
+
+  for (i in 1:n_items)
+  {
+    samples[[i]] <- as.numeric(input_list[[i]]$folds)
+  }
+
+  return(samples)
+}

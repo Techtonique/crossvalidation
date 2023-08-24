@@ -42,7 +42,8 @@
 #'
 #'# linear model example -----
 #'
-#' crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3)
+#' crossvalidation::crossval_ml(x = X, y = y,
+#'                              k = 5L, repeats = 3L)
 #'
 #'
 #'# randomForest example -----
@@ -52,13 +53,13 @@
 #'# fit randomForest with mtry = 2
 #'
 #'\dontrun{
-#'crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+#'crossvalidation::crossval_ml(x = X, y = y, k = 5L, repeats = 3L,
 #'                   fit_func = randomForest::randomForest, predict_func = predict,
 #'                   packages = "randomForest", fit_params = list(mtry = 2))
 #'
 #'# fit randomForest with mtry = 4
 #'
-#'crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+#'crossvalidation::crossval_ml(x = X, y = y, k = 5L, repeats = 3L,
 #'                   fit_func = randomForest::randomForest, predict_func = predict,
 #'                   packages = "randomForest", fit_params = list(mtry = 4))
 #'
@@ -113,8 +114,8 @@ crossval_ml <- function(x,
   if (is.null(eval_metric))
   {
     if (is.factor(y))
-      # classification
     {
+      # classification
       eval_metric <- function (preds, actual)
       {
         stopifnot(length(preds) == length(actual))
@@ -124,8 +125,8 @@ crossval_ml <- function(x,
       }
 
     } else {
-      # regression
 
+      # regression
       eval_metric <- function (preds, actual)
       {
         stopifnot(length(preds) == length(actual))
@@ -204,14 +205,13 @@ crossval_ml <- function(x,
                            fit_params))
 
         # predict
-        preds <-
-          try(predict_func(fit_obj, newdata = x[test_index,]),
-              silent = TRUE)
-        if (class(preds) == "try-error")
+        preds <- try(predict_func(fit_obj, newdata = x[test_index,]),
+                                  silent = TRUE)
+        if (inherits(preds, "try-error"))
         {
           preds <- try(predict_func(fit_obj, newx = x[test_index,]),
                        silent = TRUE)
-          if (class(preds) == "try-error")
+          if (inherits(preds, "try-error"))
           {
             preds <- rep(NA, length(test_index))
           }
@@ -238,13 +238,13 @@ crossval_ml <- function(x,
                              newdata = x_validation),
                 silent = TRUE)
 
-          if (class(preds_validation) == "try-error")
+          if (inherits(preds_validation, "try-error"))
           {
             preds_validation <- try(predict_func(fit_obj,
                                                  newx = x_validation),
                                     silent = TRUE)
 
-            if (class(preds_validation) == "try-error")
+            if (inherits(preds_validation, "try-error"))
             {
               preds_validation <- rep(NA, length(y_validation))
             }
@@ -287,6 +287,7 @@ crossval_ml <- function(x,
       .verbose = verbose,
       .export = c("create_folds")
     ) %op% {
+
       if (show_progress)
       {
         setTxtProgressBar(pb, i)
@@ -301,9 +302,9 @@ crossval_ml <- function(x,
           .errorhandling = errorhandling,
           .export = c("fit_params")
         ) %op% {
+
           train_index <- -list_folds[[j]][[i]]
-          test_index <-
-            -train_index
+          test_index <- -train_index
 
           # fit
           set.seed(seed) # in case the algo is randomized
@@ -313,21 +314,21 @@ crossval_ml <- function(x,
                        y = y[train_index],
                        ...)
 
-          fit_obj <-
-            do.call(what = fit_func_train,
-                    args = c(list(x = x[train_index,],
+          fit_obj <- do.call(what = fit_func_train,
+                             args = c(list(x = x[train_index,],
                                   y = y[train_index]),
                              fit_params))
 
           # predict
-          preds <-
-            try(predict_func(fit_obj, newdata = x[test_index,]),
-                silent = TRUE)
-          if (class(preds) == "try-error")
+          preds <- try(predict_func(fit_obj, newdata = x[test_index,]),
+                        silent = TRUE)
+
+          if (inherits(preds, "try-error"))
           {
             preds <- try(predict_func(fit_obj, newx = x[test_index,]),
                          silent = TRUE)
-            if (class(preds) == "try-error")
+
+            if (inherits(preds, "try-error"))
             {
               preds <- rep(NA, length(test_index))
             }
@@ -338,6 +339,7 @@ crossval_ml <- function(x,
             eval_metric(preds, y[test_index])
 
           if (p == 1) {
+
             error_measure
 
           } else {
@@ -349,13 +351,13 @@ crossval_ml <- function(x,
                                newdata = x_validation),
                   silent = TRUE)
 
-            if (class(preds_validation) == "try-error")
+            if (inherits(preds_validation, "try-error"))
             {
               preds_validation <- try(predict_func(fit_obj,
                                                    newx = x_validation),
                                       silent = TRUE)
 
-              if (class(preds_validation) == "try-error")
+              if (inherits(preds_validation, "try-error"))
               {
                 preds_validation <- rep(NA, length(y_validation))
               }

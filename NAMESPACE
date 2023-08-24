@@ -1,5 +1,8 @@
+S3method(plot, crossvalidation)
 import(parallel)
 importFrom("stats", "median", "sd")
 importFrom("stats", "quantile", "quasi")
+importFrom("doSNOW", "registerDoSNOW")
+importFrom("foreach", "foreach")
 importFrom("utils", "setTxtProgressBar", "txtProgressBar")
 exportPattern("^[[:alpha:]]+")
