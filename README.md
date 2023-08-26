@@ -6,7 +6,7 @@ Generic R functions for cross-validation
 
 ### Installation
 
-- __1st method__: from [R-universe](https://ropensci.org/r-universe/)
+- __1st method__: from [R-universe](https://techtonique.r-universe.dev)
 
 In R console:
 
