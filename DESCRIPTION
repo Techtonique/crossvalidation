@@ -13,9 +13,11 @@ RoxygenNote: 7.2.2
 BugReports: https://github.com/Techtonique/crossvalidation/issues
 Depends: doSNOW, foreach, scoringRules
 Suggests: 
+    glmnet,
     testthat,
     forecast,
     randomForest,
     knitr,
-    rmarkdown
+    rmarkdown,
+    xgboost
 VignetteBuilder: knitr
