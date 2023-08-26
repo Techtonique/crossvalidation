@@ -146,7 +146,7 @@ f_xgboost <- function(x, y, ...) xgboost::xgboost(data = x, label = y, ...)
 ```
 
 ```{r fig.width=7.2}
-boxplot(samples)
+boxplot(samples, main = "RMSE")
 ```
 
 
@@ -255,5 +255,6 @@ f_xgboost <- function(x, y, ...) {
 ```
 
 ```{r fig.width=7.2}
-boxplot(samples)
+boxplot(samples, main = "Accuracy")
+abline(h = 1, col = "red", lty = 2, lwd = 2)
 ```

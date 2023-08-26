@@ -390,7 +390,8 @@ crossval_ml <- function(x,
       folds = res,
       mean = mean(res, na.rm = TRUE),
       sd = sd(res, na.rm = TRUE),
-      median = median(res, na.rm = TRUE)
+      median = median(res, na.rm = TRUE),
+      summary = summary(res)
     ))
   } else {
     if (repeats > 1)
@@ -422,7 +423,9 @@ crossval_ml <- function(x,
         sd_training = sd(train_test_df),
         sd_validation = sd(validation_df),
         median_training = median(train_test_df),
-        median_validation = median(validation_df)
+        median_validation = median(validation_df),
+        summary_training = summary(train_test_df),
+        summary_validation = summary(validation_df)
       )
     )
   }
