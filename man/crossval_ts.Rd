@@ -169,10 +169,10 @@ fcast_func <- function(y, h = 5, type_forecast=c("mean", "median"))
 
 print(fcast_func(x))
 
-res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
+res <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
 colMeans(res)
 
-res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
+res <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 colMeans(res)
 
 # Example 8 -----
@@ -186,7 +186,7 @@ eval_metric <- function(predicted, observed)
   return(res)
 }
 
-res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
+res <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
 eval_metric = eval_metric)
 
 colMeans(res)

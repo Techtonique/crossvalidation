@@ -20,5 +20,9 @@ create_samples <- function(...,
     samples[[i]] <- as.numeric(input_list[[i]]$folds)
   }
 
+  names(samples) <- model_names
+
+  class(samples) <- c("cvsamples", class(samples))
+
   return(samples)
 }

@@ -1,0 +1,259 @@
+---
+title: "boxplots for model performance"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{boxplots}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# 0 - Global parameters
+
+```{r}
+(n_folds <- 10)
+(repeats <- 5)
+```
+
+```{r}
+library(glmnet)
+library(xgboost)
+library(Matrix)
+library(randomForest)
+```
+
+# 1 - Regression
+
+```{r}
+# dataset
+ set.seed(123)
+ n <- 100 ; p <- 5
+ X <- matrix(rnorm(n * p), n, p)
+ print(head(X))
+ y <- rnorm(n)
+ print(head(y))
+```
+
+## least squares
+
+```{r}
+# linear model example, with validation set
+(cv_lm <- crossvalidation::crossval_ml(x = X, y = y, k = n_folds, 
+                                       repeats = repeats,  show_progress = FALSE))
+```
+
+## `glmnet`
+
+```{r echo=TRUE}
+# glmnet example -----
+
+# fit glmnet, with alpha = 1, lambda = 0.1
+(cv_glmnet <- crossvalidation::crossval_ml(x = X, y = y, k = n_folds, 
+                                           repeats = repeats, 
+                                           show_progress = FALSE,
+                                           fit_func = glmnet, predict_func = predict,
+                                           packages = c("glmnet", "Matrix"), 
+                                           fit_params = list(alpha = 0, lambda = 0.01)))
+```
+
+## Random Forest
+
+```{r}
+# randomForest example -----
+
+# fit randomForest with mtry = 4, with validation set
+(
+  cv_rf <- crossvalidation::crossval_ml(
+    x = X,
+    y = y,
+    k = n_folds,
+    repeats = repeats,
+    show_progress = FALSE,
+    fit_func = randomForest::randomForest,
+    predict_func = predict,
+    packages = "randomForest",
+    fit_params = list(mtry = 4)
+  )
+)
+```
+
+## `xgboost`
+
+```{r}
+# xgboost example -----
+
+# The response and covariates are named 'label' and 'data'
+# So, we do this:
+
+f_xgboost <- function(x, y, ...) xgboost::xgboost(data = x, label = y, ...)
+
+# fit xgboost with nrounds = 10, with validation set
+
+(
+  cv_xgboost <-
+    crossvalidation::crossval_ml(
+      x = X,
+      y = y,
+      k = n_folds,
+      repeats = repeats,
+      show_progress = FALSE,
+      fit_func = f_xgboost,
+      predict_func = predict,
+      #packages = "xgboost",
+      fit_params = list(nrounds = 10,
+                        verbose = FALSE)
+    )
+)
+```
+
+# `glmnet`
+
+```{r echo=TRUE}
+# glmnet example -----
+
+# fit glmnet, with alpha = 1, lambda = 0.1
+ cv_glmnet1 <- crossvalidation::crossval_ml(x = X, y = y, k = n_folds, 
+                                            repeats = repeats,
+                              show_progress = FALSE,
+                              fit_func = glmnet, 
+                              predict_func = predict.glmnet,
+                              packages = c("glmnet", "Matrix"), 
+                              fit_params = list(alpha = 0.5, 
+                                                lambda = 0.1, 
+                                                family = "gaussian"))
+
+# fit glmnet, with alpha = 0, lambda = 0.01
+
+ cv_glmnet2 <- crossvalidation::crossval_ml(x = X, y = y, k = n_folds, repeats = repeats, show_progress = FALSE,
+ fit_func = glmnet::glmnet, predict_func = predict.glmnet,
+ packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01, family = "gaussian"))
+
+ # fit glmnet, with alpha = 0, lambda = 0.01, with validation set
+
+ cv_glmnet3 <- crossvalidation::crossval_ml(x = X, y = y, k = n_folds, repeats = repeats, show_progress = FALSE,
+ fit_func = glmnet::glmnet, predict_func = predict.glmnet,
+ packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
+
+```
+
+## boxplots for regression
+
+```{r}
+(samples <- crossvalidation::create_samples(cv_lm, cv_glmnet1,
+                           cv_glmnet2, cv_glmnet3,
+                           cv_rf, cv_xgboost,
+                           model_names = c("lm", "glmnet1", "glmnet2", 
+                                           "glmnet3", "rf", "xgb")))
+```
+
+```{r fig.width=7.2}
+boxplot(samples)
+```
+
+
+# 2 - classification
+
+```{r}
+data(iris)
+```
+
+```{r}
+X <- as.matrix(iris[, 1:4])
+print(head(X))
+y <- factor(as.numeric(iris$Species))
+print(head(y))
+```
+
+## `glmnet`
+
+```{r}
+# glmnet example -----
+
+predict_glmnet <- function(object, newx) {
+  as.numeric(predict(object = object, 
+          newx = newx,
+          type = "class"))
+}
+
+(cv_glmnet_1 <- crossvalidation::crossval_ml(x = X, 
+                                             y = as.integer(iris$Species), 
+                                             k = n_folds, repeats = repeats, show_progress = FALSE,
+ fit_func = glmnet, predict_func = predict_glmnet,
+ packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0.5, lambda = 0.1, family = "multinomial"))) # better to use `nlambda`
+
+
+(cv_glmnet_2 <- crossvalidation::crossval_ml(x = X, 
+                                             y = as.integer(iris$Species), 
+                                             k = n_folds, repeats = repeats, show_progress = FALSE,
+ fit_func = glmnet::glmnet, predict_func = predict_glmnet,
+ packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01, family = "multinomial")))
+
+(cv_glmnet_3 <- crossvalidation::crossval_ml(x = X, y = as.integer(iris$Species) , k = n_folds, repeats = repeats, show_progress = FALSE, 
+ fit_func = glmnet::glmnet, predict_func = predict_glmnet,
+ packages = c("glmnet", "Matrix"), fit_params = list(alpha = 1, lambda = 0.01, family = "multinomial")))
+```
+
+## Random Forest
+
+```{r}
+# randomForest example -----
+
+# fit randomForest with mtry = 4, with validation set
+(
+  cv_rf <- crossvalidation::crossval_ml(
+    x = X,
+    y = y,
+    k = n_folds,
+    repeats = repeats,
+    show_progress = FALSE,
+    fit_func = randomForest::randomForest,
+    predict_func = predict,
+    #packages = "randomForest",
+    fit_params = list(mtry = 2L)
+  )
+)
+```
+
+## xgboost
+
+```{r echo=TRUE}
+y <- as.integer(iris$Species) - 1
+
+print(y)
+```
+
+```{r echo=TRUE}
+# xgboost example -----
+
+# fit xgboost with nrounds = 10, with validation set
+
+f_xgboost <- function(x, y, ...) {
+  #xgb_train = xgb.DMatrix(data=x, label=y)
+  xgboost::xgboost(data = x, label = y, ...)
+} 
+
+(cv_xgboost <- crossvalidation::crossval_ml(x = X, y = y, k = n_folds, repeats = repeats,  fit_func = f_xgboost, predict_func = predict,
+                             packages = "xgboost", 
+                             show_progress = FALSE,
+                             fit_params = list(nrounds = 50L,
+                                               verbose = FALSE,
+                                               params = list(max_depth = 3L,
+                                               eta = 0.1,  
+                                               subsample = 0.8,
+                                               colsample_bytree = 0.8,
+                                               objective = "multi:softmax", 
+                                               num_class = 3L))))
+```
+
+## boxplots for classification
+
+```{r}
+(samples <- crossvalidation::create_samples(cv_rf, cv_glmnet_1,
+                                            cv_glmnet_2, cv_glmnet_3, 
+                                            cv_xgboost, 
+                                            model_names = c("rf", "glmnet1", "glmnet2", 
+                                           "glmnet3", "xgb")))
+```
+
+```{r fig.width=7.2}
+boxplot(samples)
+```

@@ -424,7 +424,7 @@ eval_ts <- function(y,
         {
           preds <- try(predict_func(fit_obj, newx = x[test_index,]),
                        silent = FALSE)
-          if (class(preds) == "try-error")
+          if (class(preds)[1] == "try-error")
           {
             preds <- rep(NA, length(test_index))
           }

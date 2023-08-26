@@ -7,13 +7,22 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+```{r}
+library(glmnet)
+library(xgboost)
+library(Matrix)
+library(randomForest)
+library(forecast)
+```
+
+
 Examples for regression, time series, and classification.
 
 ## Regression
 
 ### Create a dataset
 
-```R
+```{r}
 # dataset
  set.seed(123)
  n <- 100 ; p <- 5
@@ -25,7 +34,7 @@ Examples for regression, time series, and classification.
 
 __Linear model__ 
 
-```R
+```{r}
 
 # 'X' contains the explanatory variables
 # 'y' is the response
@@ -34,72 +43,69 @@ __Linear model__
 
 # linear model example -----
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3)
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3, show_progress = FALSE)
 
 # linear model example, with validation set
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3, p = 0.8)
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3, p = 0.8, show_progress = FALSE)
 ```
 
 __glmnet__
 
-```R
+```{r}
 # glmnet example -----
 
 # fit glmnet, with alpha = 1, lambda = 0.1
 
-require(glmnet)
-require(Matrix)
-
- crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+ crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3, show_progress = FALSE,
  fit_func = glmnet::glmnet, predict_func = predict.glmnet,
  packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0.5, lambda = 0.1))
 
 # fit glmnet, with alpha = 0, lambda = 0.01
 
- crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+ crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3, show_progress = FALSE,
  fit_func = glmnet::glmnet, predict_func = predict.glmnet,
  packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
 
  # fit glmnet, with alpha = 0, lambda = 0.01, with validation set
 
- crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+ crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8, 
+                              show_progress = FALSE,
  fit_func = glmnet::glmnet, predict_func = predict.glmnet,
  packages = c("glmnet", "Matrix"), fit_params = list(alpha = 0, lambda = 0.01))
 ```
 
 __Random Forest__
 
-```R
+```{r}
 # randomForest example -----
-
-require(randomForest)
 
 # fit randomForest with mtry = 2
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3, 
+                             show_progress = FALSE,
 fit_func = randomForest::randomForest, predict_func = predict,
 packages = "randomForest", fit_params = list(mtry = 2))
 
 # fit randomForest with mtry = 4
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3, 
+                             show_progress = FALSE,
 fit_func = randomForest::randomForest, predict_func = predict,
 packages = "randomForest", fit_params = list(mtry = 4))
 
 # fit randomForest with mtry = 4, with validation set
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8, 
+                             show_progress = FALSE,
 fit_func = randomForest::randomForest, predict_func = predict,
 packages = "randomForest", fit_params = list(mtry = 4))
 ```
 
 __xgboost__
 
-```R
+```{r}
 # xgboost example -----
-
-require(xgboost)
 
 # The response and covariates are named 'label' and 'data'
 # So, we do this:
@@ -108,21 +114,24 @@ f_xgboost <- function(x, y, ...) xgboost::xgboost(data = x, label = y, ...)
 
 # fit xgboost with nrounds = 5
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3, 
+                             show_progress = FALSE,
   fit_func = f_xgboost, predict_func = predict,
    packages = "xgboost", fit_params = list(nrounds = 5,
    verbose = FALSE))
 
 # fit xgboost with nrounds = 10
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3, 
+                             show_progress = FALSE,
   fit_func = f_xgboost, predict_func = predict,
    packages = "xgboost", fit_params = list(nrounds = 10,
    verbose = FALSE))
 
 # fit xgboost with nrounds = 10, with validation set
 
-crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
+crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8, 
+                             show_progress = FALSE,
   fit_func = f_xgboost, predict_func = predict,
    packages = "xgboost", fit_params = list(nrounds = 10,
    verbose = FALSE))
@@ -132,19 +141,14 @@ crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 2, p = 0.8,
 
 __Theta method (time series)__
 
-```R
-require(forecast)
-res <- crossvalidation::crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = thetaf)
+```{r}
+res <- crossvalidation::crossval_ts(y=AirPassengers, initial_window = 10, fcast_func = thetaf, show_progress = FALSE)
 print(colMeans(res))
 ```
 
 ## Classification
 
-```
-library(randomForest)
-```
-
-```R
+```{r}
 # Input data 
 
 # Transforming model response into a factor
@@ -154,18 +158,19 @@ X <- as.matrix(iris[, c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Wi
 ```
 
 
-```R
+```{r}
 # 5-fold cross-validation repeated 3 times
 # default error metric, when y is a factor: accuracy
 crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
                              fit_func = randomForest::randomForest, 
                              predict_func = predict,
                              fit_params = list(mtry = 2),
-                             packages = "randomForest")
+                             packages = "randomForest", 
+                             show_progress = FALSE)
 
 ```
 
-```R
+```{r}
 # We can specify custom error metrics for crossvalidation::crossval_ml
 # here, the error rate 
 eval_metric <- function (preds, actual)
@@ -183,5 +188,6 @@ crossvalidation::crossval_ml(x = X, y = y, k = 5, repeats = 3,
                              predict_func = predict,
                              fit_params = list(mtry = 2),
                              packages = "randomForest", 
-                             eval_metric=eval_metric)
+                             eval_metric=eval_metric, 
+                             show_progress = FALSE)
 ```

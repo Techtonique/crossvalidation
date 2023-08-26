@@ -126,10 +126,10 @@
 #'
 #' print(fcast_func(x))
 #'
-#' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
+#' res <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median"))
 #' colMeans(res)
 #'
-#' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
+#' res <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 #' colMeans(res)
 #'
 #' # Example 8 -----
@@ -143,7 +143,7 @@
 #'   return(res)
 #' }
 #'
-#' res <- crossvalidation::crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
+#' res <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"),
 #' eval_metric = eval_metric)
 #'
 #' colMeans(res)
@@ -398,7 +398,7 @@ crossval_ts <- function(y,
         {
           preds <- try(predict_func(fit_obj, newx = x[test_index,]),
                        silent = FALSE)
-          if (class(preds) == "try-error")
+          if (class(preds)[1] == "try-error")
           {
             preds <- rep(NA, length(test_index))
           }
