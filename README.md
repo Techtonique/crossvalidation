@@ -3,6 +3,7 @@
 
 Generic R functions for cross-validation 
 
+[![HitCount](https://hits.dwyl.com/Techtonique/crossvalidation.svg?style=flat-square)](http://hits.dwyl.com/Techtonique/crossvalidation)
 
 ### Installation
 
