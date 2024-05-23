@@ -3,10 +3,15 @@
 #' @param ... list of cross-validation results for multiple models
 #' @param model_names model names
 #'
-#' @return a data frame
+#' @return a list of results to be used in \code{plot}
 #' @export
 #'
 #' @examples
+#'
+#' \dontrun{
+#' print("see vignettes")
+#' }
+#'
 create_samples <- function(...,
                            model_names)
 {

@@ -12,8 +12,15 @@ create_samples(..., model_names)
 \item{model_names}{model names}
 }
 \value{
-a data frame
+a list of results to be used in \code{\link{plot}}
 }
 \description{
 Create a data structure of cross-validation results
+}
+\examples{
+
+\dontrun{
+print("see vignettes")
+}
+
 }

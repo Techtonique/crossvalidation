@@ -7,11 +7,19 @@
 \method{boxplot}{cvsamples}(x, ...)
 }
 \arguments{
-\item{x}{a data frame containing models cross-validation performances
-(using) \code{\link{crossvalidation::create_samples}}}
+\item{x}{a list containing models cross-validation performances,
+using \code{\link{crossvalidation::create_samples}}}
 
 \item{...}{additional parameters to be passed to \code{boxplot}}
 }
 \description{
 Boxplots of cross-validation performances
+}
+\examples{
+
+\dontrun{
+print("see vignettes")
+}
+
+
 }
