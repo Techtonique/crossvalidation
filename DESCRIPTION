@@ -9,7 +9,7 @@ Description: Generic functions for cross-validation of Statistical/Machine Learn
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.2
+RoxygenNote: 7.3.2
 BugReports: https://github.com/Techtonique/crossvalidation/issues
 Depends: doSNOW, foreach, scoringRules
 Suggests: 

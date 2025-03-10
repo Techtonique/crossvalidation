@@ -12,7 +12,7 @@ create_samples(..., model_names)
 \item{model_names}{model names}
 }
 \value{
-a list of results to be used in \code{\link{plot}}
+a list of results to be used in \code{plot}
 }
 \description{
 Create a data structure of cross-validation results
