@@ -19,5 +19,7 @@ Suggests:
     randomForest,
     knitr,
     rmarkdown,
-    xgboost
+    xgboost,
+    misc 
 VignetteBuilder: knitr
+Remotes: thierrymoudiki/misc
