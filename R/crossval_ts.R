@@ -283,7 +283,7 @@ crossval_ts <- function(y,
           preds <- rep(NA, horizon)
         }
         
-        misc::debug_print(preds)
+        #misc::debug_print(preds)
         
         # measure the error
         error_measure <-
