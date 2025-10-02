@@ -78,7 +78,6 @@ Generic cross-validation for univariate and multivariate time series
 }
 \examples{
 
-
 require(forecast)
 data("AirPassengers")
 
@@ -116,18 +115,6 @@ res <- crossval_ts(y=AirPassengers,
 initial_window = 10, horizon = 3, fcast_func = fcast_func)
 print(colMeans(res))
 
-
-# Example 4 -----
-
-xreg <- cbind(1, 1:length(AirPassengers))
-res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
-predict_func = crossvalidation::predict_lm,
-initial_window = 10,
-horizon = 3,
-fixed_window = TRUE)
-print(colMeans(res))
-
-
 # Example 5 -----
 
 res <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
@@ -136,16 +123,6 @@ horizon = 3,
 fixed_window = TRUE)
 print(colMeans(res))
 
-
-#' # Example 6 -----
-
-xreg <- cbind(1, 1:length(AirPassengers))
-res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
-predict_func = crossvalidation::predict_lm,
-initial_window = 10,
-horizon = 3,
-fixed_window = TRUE)
-print(colMeans(res))
 
 
 # Example 7 -----
@@ -179,7 +156,7 @@ colMeans(res)
 
 eval_metric <- function(predicted, observed)
 {
-  error <- observed - predicted
+  error <- observed - predicted$mean
 
   res <- apply(error, 2, function(x) sqrt(mean(x ^ 2, na.rm = FALSE)))
 

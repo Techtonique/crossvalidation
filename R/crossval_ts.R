@@ -35,7 +35,6 @@
 #'
 #' @examples
 #'
-#'
 #' require(forecast)
 #' data("AirPassengers")
 #'
@@ -73,19 +72,7 @@
 #' initial_window = 10, horizon = 3, fcast_func = fcast_func)
 #' print(colMeans(res))
 #'
-#'
 #' # Example 4 -----
-#'
-#' xreg <- cbind(1, 1:length(AirPassengers))
-#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
-#' predict_func = crossvalidation::predict_lm,
-#' initial_window = 10,
-#' horizon = 3,
-#' fixed_window = TRUE)
-#' print(colMeans(res))
-#'
-#'
-#' # Example 5 -----
 #'
 #' res <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
 #' initial_window = 10,
@@ -93,19 +80,7 @@
 #' fixed_window = TRUE)
 #' print(colMeans(res))
 #'
-#'
-#'#' # Example 6 -----
-#'
-#' xreg <- cbind(1, 1:length(AirPassengers))
-#' res <- crossval_ts(y=AirPassengers, x=xreg, fit_func = crossvalidation::fit_lm,
-#' predict_func = crossvalidation::predict_lm,
-#' initial_window = 10,
-#' horizon = 3,
-#' fixed_window = TRUE)
-#' print(colMeans(res))
-#'
-#'
-#' # Example 7 -----
+#' # Example 5 -----
 #'
 #' x <- ts(matrix(rnorm(50), nrow = 25))
 #'
@@ -121,7 +96,6 @@
 #'   medians <- apply(y, 2, median)
 #'   return(list(mean = t(replicate(n = h, expr = medians))))
 #'  }
-#'
 #' }
 #'
 #' print(fcast_func(x))
@@ -132,11 +106,11 @@
 #' res <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 #' colMeans(res)
 #'
-#' # Example 8 -----
+#' # Example 6 -----
 #'
 #' eval_metric <- function(predicted, observed)
 #' {
-#'   error <- observed - predicted
+#'   error <- observed - predicted$mean
 #'
 #'   res <- apply(error, 2, function(x) sqrt(mean(x ^ 2, na.rm = FALSE)))
 #'
@@ -168,37 +142,41 @@ crossval_ts <- function(y,
                         verbose = FALSE,
                         show_progress = TRUE,
                         ...) {
-
+  
   stopifnot(p <= 1 && p >= 0.5)
-
-  if (p < 1) # cross validation on 1:floor(p*length(y)) indices
+  
+  if (!is.null(fcast_func) && !is.function(fcast_func)) {
+    stop("fcast_func must be a function")
+  }
+  
+  if (p < 1)
+    # cross validation on 1:floor(p*length(y)) indices
   {
-    if(!is.null(ncol(y))) # multivariate input y
+    if (!is.null(ncol(y)))
+      # multivariate input y
     {
       if (is.ts(y))
       {
-        y <- ts(y[1:floor(p*nrow(y)), ],
-                start = start(y),
-                frequency = frequency(y))
+        y <- ts(y[1:floor(p * nrow(y)), ], start = start(y), frequency = frequency(y))
       } else {
-        y <- ts(y[1:floor(p*nrow(y)), ])
+        y <- ts(y[1:floor(p * nrow(y)), ])
       }
-    } else {# univariate input y
+    } else {
+      # univariate input y
       if (is.ts(y))
       {
-        y <- ts(y[1:floor(p*length(y))],
-                start = start(y),
-                frequency = frequency(y))
+        y <- ts(y[1:floor(p * length(y))], start = start(y), frequency = frequency(y))
       } else {
-        y <- ts(y[1:floor(p*length(y))])
+        y <- ts(y[1:floor(p * length(y))])
       }
     }
   }
-
-  if(!is.null(ncol(y))) # multivariate time series input
+  
+  if (!is.null(ncol(y)))
+    # multivariate time series input
   {
     n_y <- dim(y)[1]
-
+    
     time_slices <-
       crossvalidation::create_time_slices(
         y[, 1],
@@ -206,10 +184,9 @@ crossval_ts <- function(y,
         horizon = horizon,
         fixed_window = fixed_window
       )
-  } else { # univariate time series input
-
+  } else {
+    # univariate time series input
     n_y <- length(y)
-
     time_slices <-
       crossvalidation::create_time_slices(
         y,
@@ -218,44 +195,41 @@ crossval_ts <- function(y,
         fixed_window = fixed_window
       )
   }
-
-
+  
   n_slices <- length(time_slices$train)
-
-  if (!is.null(x)) # regression, ML model
+  
+  if (!is.null(x))
+    # regression, ML model
   {
     if (p < 1)
     {
-      x <- x[1:floor(p*nrow(x)), ]
+      x <- x[1:floor(p * nrow(x)), ]
     }
     n_x <- dim(x)[1]
     p_x <- dim(x)[2]
     stopifnot(n_x == n_y)
   }
-
+  
   # performance metrics
   if (is.null(eval_metric))
   {
     eval_metric <- function(predicted, observed)
     {
-      error <- observed - predicted
-      pe <- predicted / observed - 1
-
+      error <- observed - predicted$mean
+      pe <- predicted$mean / observed - 1
       res <- c(
         mean(error, na.rm = FALSE),
-        sqrt(mean(error ^ 2, na.rm = FALSE)),
+        sqrt(mean(error^2, na.rm = FALSE)),
         mean(abs(error), na.rm = FALSE),
         mean(pe, na.rm = FALSE),
         mean(abs(pe), na.rm = FALSE)
       )
-
       names(res) <- c("ME", "RMSE", "MAE", "MPE", "MAPE")
-
       return(res)
     }
     eval_metric <- compiler::cmpfun(eval_metric)
   }
-
+  
   # progress bars
   if (!is.null(cl)) {
     cl_SOCK <- parallel::makeCluster(cl, type = "SOCK")
@@ -264,23 +238,24 @@ crossval_ts <- function(y,
   } else {
     `%op%` <- foreach::`%do%`
   }
-
+  
   if (show_progress)
   {
     pb <- txtProgressBar(min = 0,
                          max = n_slices,
                          style = 3)
-    progress <- function(n) {utils::setTxtProgressBar(pb, n)}
+    progress <- function(n) {
+      utils::setTxtProgressBar(pb, n)
+    }
     opts <- list(progress = progress)
   } else {
     opts <- NULL
   }
-
-
-  if (!is.null(fcast_func)) { # if fcast_func is not NULL, ts models are used
-
+  
+  if (!is.null(fcast_func)) {
+    # if fcast_func is not NULL, ts models are used
+    
     # 1 - interface for forecasting functions --------------------------------------------------
-
     i <- NULL
     res <- foreach::foreach(
       i = 1:n_slices,
@@ -290,81 +265,75 @@ crossval_ts <- function(y,
       .options.snow = opts,
       .verbose = verbose
     ) %op% {
-
       train_index <- time_slices$train[[i]]
       test_index <- time_slices$test[[i]]
-
-      # cat("train_index", "\n")
-      # print(train_index)
-      # cat("\n")
-      # cat("test_index", "\n")
-      # print(test_index)
-      # cat("\n")
-
+      
       # 1 - 1 interface for forecasting functions: univariate --------------------------------------------------
-
-      if (is.null(ncol(y))) # univariate time series case
+      
+      if (is.null(ncol(y)))
+        # univariate time series case
       {
-       preds <- try(do.call(what = fcast_func,
-                               args = c(list(y = y[train_index],
-                                          h = horizon), fit_params))$mean, silent = FALSE)
-
-        if (class(preds)[1] == "try-error")
+        preds <- try(do.call(what = fcast_func, 
+                             args = c(list(y = y[train_index], 
+                                           h = horizon), fit_params)), 
+                     silent = FALSE)
+        
+        if (inherits(preds, "try-error"))
         {
           preds <- rep(NA, horizon)
         }
-
+        
+        misc::debug_print(preds)
+        
         # measure the error
         error_measure <-
           eval_metric(preds, y[test_index]) # univariate
-
-      } else { #multivariate time series case
-
+        
+      } else {
+        #multivariate time series case
+        
         # 1 - 2 interface for forecasting functions: multivariate --------------------------------------------------
-
-        preds <- try(do.call(
-                          what = fcast_func,
-                          args = c(list(y = y[train_index, ],
-                                        h = horizon), fit_params)
-                        )$mean, silent = FALSE)
-
-        if (class(preds)[1] == "try-error" | is.null(preds))
+        
+        preds <- try(do.call(what = fcast_func, args = c(list(y = y[train_index, ], h = horizon), fit_params)), silent = FALSE)
+        
+        if (inherits(preds, "try-error") | is.null(preds))
         {
           preds <- rep(NA, horizon)
         }
-
+        
         # measure the error
         error_measure <-
           eval_metric(preds, y[test_index, ])
-
+        
       }
-
+      
       if (show_progress)
       {
         setTxtProgressBar(pb, i)
       }
-
+      
       error_measure
-
+      
     }
-
+    
     if (show_progress)
     {
       close(pb)
     }
-
+    
     if (!is.null(cl))
     {
-      snow::stopCluster(cl_SOCK)
+      parallel::stopCluster(cl_SOCK)
     }
-
-  } else { # if fcast_func is NULL, ML models are used
-
+    
+  } else {
+    # if fcast_func is NULL, ML models are used
+    
     stopifnot(!is.null(fit_func))
     stopifnot(!is.null(predict_func))
-
+    
     # 2 - interface for ml functions --------------------------------------------------
-
+    
     i <- NULL
     res <- foreach::foreach(
       i = 1:n_slices,
@@ -378,65 +347,56 @@ crossval_ts <- function(y,
       train_index <-
         time_slices$train[[i]]
       test_index <- time_slices$test[[i]]
-
-
+      
+      
       if (is.null(ncol(y)))
       {
         # 2 - 1 interface for ml function: univariate --------------------------------------------------
         fit_obj <-
-          do.call(what = fit_func,
-                  args = c(list(x = x[train_index,],
-                                y = y[train_index]),
-                           fit_params))
-
+          do.call(what = fit_func, args = c(list(x = x[train_index, ], y = y[train_index]), fit_params))
+        
         # predict
         preds <-
-          try(predict_func(fit_obj, newdata = x[test_index,]),
-              silent = TRUE)
-
-        if (class(preds)[1] == "try-error")
+          try(predict_func(fit_obj, newdata = x[test_index, ]), silent = TRUE)
+        
+        if (inherits(preds, "try-error"))
         {
-          preds <- try(predict_func(fit_obj, newx = x[test_index,]),
-                       silent = FALSE)
-          if (class(preds)[1] == "try-error")
+          preds <- try(predict_func(fit_obj, newx = x[test_index, ]), silent = FALSE)
+          if (inherits(preds, "try-error"))
           {
             preds <- rep(NA, length(test_index))
           }
         }
-
+        
         # measure the error
         error_measure <-
           eval_metric(preds, y[test_index])
-
+        
       } else {
-
         # 2 - 2 interface for ml function: multivariate (ko so far) --------------------------------------------------
         stop("Not implemented")
-
-        }
-
+        
+      }
+      
       if (show_progress)
       {
         setTxtProgressBar(pb, i)
       }
-
+      
       error_measure
     }
-
+    
     if (show_progress)
     {
       close(pb)
     }
-
+    
     if (!is.null(cl))
     {
-      snow::stopCluster(cl_SOCK)
+      parallel::stopCluster(cl_SOCK)
     }
   }
-
-
-
+  
   return(res)
-
 }
 compiler::cmpfun(crossval_ts)

@@ -1,0 +1,120 @@
+---
+title: "crossval_ts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{crossval_ts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+library(crossvalidation)
+```
+
+
+```{r}
+require(forecast)
+data("AirPassengers")
+
+# Example 1 -----
+
+(res1 <- crossval_ts(y=AirPassengers, initial_window = 10,
+horizon = 3, fcast_func = forecast::thetaf))
+print(colMeans(res1))
+
+(res1_parallel <- crossval_ts(y=AirPassengers, initial_window = 10,
+horizon = 3, fcast_func = forecast::thetaf, cl=2L))
+print(colMeans(res1_parallel))
+
+# Example 2 -----
+
+fcast_func <- function (y, h, ...)
+{
+      forecast::forecast(forecast::auto.arima(y, ...),
+      h=h, ...)
+}
+
+(res2 <- crossval_ts(y=AirPassengers, initial_window = 10, horizon = 3,
+fcast_func = fcast_func))
+print(res2)
+print(colMeans(res2))
+
+(res2_parallel <- crossval_ts(y=AirPassengers, initial_window = 10, horizon = 3,
+fcast_func = fcast_func, cl=2L))
+print(res2_parallel)
+print(colMeans(res2_parallel))
+
+# Example 3 -----
+
+fcast_func <- function (y, h, ...)
+{
+      forecast::forecast(forecast::ets(y, ...),
+      h=h, ...)
+}
+
+(res3 <- crossval_ts(y=AirPassengers,
+initial_window = 10, horizon = 3, fcast_func = fcast_func))
+print(colMeans(res3))
+
+(res3_parallel <- crossval_ts(y=AirPassengers,
+initial_window = 10, horizon = 3, fcast_func = fcast_func, cl=2L))
+print(colMeans(res3_parallel))
+
+# Example 4 -----
+
+(res4 <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
+initial_window = 10,
+horizon = 3,
+fixed_window = TRUE))
+print(colMeans(res4))
+
+(res4_parallel <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
+initial_window = 10,
+horizon = 3,
+fixed_window = TRUE, cl=2L))
+print(colMeans(res4_parallel))
+
+# Example 5 -----
+
+x <- ts(matrix(rnorm(50), nrow = 25))
+
+fcast_func <- function(y, h = 5, type_forecast=c("mean", "median"))
+{
+ type_forecast <- match.arg(type_forecast)
+
+ if (type_forecast == "mean")
+ {
+  means <- colMeans(y)
+  return(list(mean = t(replicate(n = h, expr = means))))
+ } else {
+  medians <- apply(y, 2, median)
+  return(list(mean = t(replicate(n = h, expr = medians))))
+ }
+}
+
+print(fcast_func(x))
+
+(res5 <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "median")))
+colMeans(res5)
+
+(res6 <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean")))
+colMeans(res6)
+
+# Example 6 -----
+
+eval_metric <- function(predicted, observed)
+{
+  error <- observed - predicted$mean
+
+  res7 <- apply(error, 2, function(x) sqrt(mean(x ^ 2, na.rm = FALSE)))
+
+  return(res7)
+}
+
+(res8 <- crossval_ts(y = x, fcast_func = fcast_func, 
+                    fit_params = list(type_forecast = "mean"),
+eval_metric = eval_metric))
+
+colMeans(res8)
+```
+
