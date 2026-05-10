@@ -1,4 +1,42 @@
-# inspired from caret::createFolds
+#' Create Stratified Cross-Validation Folds
+#'
+#' Creates approximately balanced folds for cross-validation.
+#' For numeric outcomes, the response is first discretized into
+#' quantile-based groups to preserve the distribution across folds.
+#' For categorical outcomes, stratified sampling is applied so that
+#' each fold contains approximately the same class proportions.
+#'
+#' Inspired by \code{caret::createFolds()}.
+#'
+#' @param y A numeric or categorical response vector.
+#' @param k Integer. The number of folds to create.
+#'
+#' @return A named list of integer vectors. Each element contains
+#' the row indices for a fold.
+#'
+#' @details
+#' If \code{y} is numeric, the values are grouped into quantile-based
+#' intervals before stratification. The number of quantile groups is
+#' automatically determined based on the sample size and number of folds.
+#'
+#' Fold names are returned in the format \code{"Fold01"},
+#' \code{"Fold02"}, etc.
+#'
+#' @examples
+#' # Classification example
+#' set.seed(123)
+#' y <- sample(c("A", "B"), size = 100, replace = TRUE)
+#' folds <- create_folds(y, k = 5)
+#'
+#' # Regression example
+#' set.seed(123)
+#' y_num <- rnorm(100)
+#' folds_num <- create_folds(y_num, k = 5)
+#'
+#' @seealso
+#' \code{\link{create_time_slices}}
+#'
+#' @export
 create_folds <- function(y, k = 10)
 {
   if (is.numeric(y)) {
@@ -42,7 +80,63 @@ create_folds <- function(y, k = 10)
 create_folds <- compiler::cmpfun(create_folds)
 
 
-# borrowed from caret::createTimeSlices
+#' Create Rolling Time Series Training and Test Slices
+#'
+#' Generates rolling training and testing index sets for time series
+#' resampling and forecasting evaluation.
+#'
+#' Inspired by \code{caret::createTimeSlices()}.
+#'
+#' @param y A vector, matrix, or data frame representing the time series.
+#' Only the number of observations is used.
+#' @param initial_window Integer. The number of observations used
+#' in the initial training window.
+#' @param horizon Integer. The forecasting horizon size.
+#' Defaults to \code{1}.
+#' @param fixed_window Logical. If \code{TRUE}, all training windows
+#' have fixed size equal to \code{initial_window}. If \code{FALSE},
+#' the training window grows over time.
+#' @param skip Integer. Number of resampling slices to skip between
+#' consecutive windows. Defaults to \code{0}.
+#'
+#' @return A list with two components:
+#' \describe{
+#'   \item{train}{A named list of integer vectors containing
+#'   training indices.}
+#'   \item{test}{A named list of integer vectors containing
+#'   testing indices.}
+#' }
+#'
+#' @details
+#' Training and testing slices are created sequentially in time order,
+#' making this function suitable for forecasting and time series
+#' cross-validation.
+#'
+#' Slice names are returned in the format
+#' \code{"training001"} and \code{"testing001"}.
+#'
+#' @examples
+#' y <- 1:20
+#'
+#' # Fixed rolling window
+#' slices <- create_time_slices(
+#'   y,
+#'   initial_window = 10,
+#'   horizon = 2
+#' )
+#'
+#' # Expanding window
+#' slices_expanding <- create_time_slices(
+#'   y,
+#'   initial_window = 10,
+#'   horizon = 2,
+#'   fixed_window = FALSE
+#' )
+#'
+#' @seealso
+#' \code{\link{create_folds}}
+#'
+#' @export
 create_time_slices <- function(y, initial_window, horizon = 1,
                                fixed_window = TRUE, skip = 0)
 {

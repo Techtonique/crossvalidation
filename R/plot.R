@@ -1,7 +1,7 @@
 #' Boxplots of cross-validation performances
 #'
 #' @param x a list containing models cross-validation performances,
-#' using \code{\link{crossvalidation::create_samples}}
+#' using \code{create_samples} (from this package)
 #' @param ... additional parameters to be passed to \code{boxplot}
 #'
 #' @return

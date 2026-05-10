@@ -115,7 +115,7 @@ res <- crossval_ts(y=AirPassengers,
 initial_window = 10, horizon = 3, fcast_func = fcast_func)
 print(colMeans(res))
 
-# Example 5 -----
+# Example 4 -----
 
 res <- crossval_ts(y=AirPassengers, fcast_func = forecast::thetaf,
 initial_window = 10,
@@ -123,9 +123,7 @@ horizon = 3,
 fixed_window = TRUE)
 print(colMeans(res))
 
-
-
-# Example 7 -----
+# Example 5 -----
 
 x <- ts(matrix(rnorm(50), nrow = 25))
 
@@ -141,7 +139,6 @@ fcast_func <- function(y, h = 5, type_forecast=c("mean", "median"))
   medians <- apply(y, 2, median)
   return(list(mean = t(replicate(n = h, expr = medians))))
  }
-
 }
 
 print(fcast_func(x))
@@ -152,7 +149,7 @@ colMeans(res)
 res <- crossval_ts(y = x, fcast_func = fcast_func, fit_params = list(type_forecast = "mean"))
 colMeans(res)
 
-# Example 8 -----
+# Example 6 -----
 
 eval_metric <- function(predicted, observed)
 {

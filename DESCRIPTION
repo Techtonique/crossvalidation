@@ -1,17 +1,17 @@
 Package: crossvalidation
 Type: Package
 Title: Generic cross-validation functions
-Version: 0.6.1
+Version: 0.6.2
 Date: 2026-05-10
 Author: T. Moudiki
 Maintainer: T. Moudiki <thierry.moudiki@gmail.com>
-Description: Generic functions for cross-validation of Statistical/Machine Learning models 
+Description: The packages provides generic functions for cross-validation of Statistical/Machine Learning models, including forecasting models.
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
 BugReports: https://github.com/Techtonique/crossvalidation/issues
-Depends: doSNOW, foreach, scoringRules
+Depends: doSNOW, foreach
 Suggests: 
     glmnet,
     testthat,
@@ -21,6 +21,7 @@ Suggests:
     rmarkdown,
     xgboost,
     misc,
-    Matrix
+    Matrix, 
+    snow
 VignetteBuilder: knitr
 Remotes: thierrymoudiki/misc
