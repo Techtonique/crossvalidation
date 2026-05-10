@@ -1,8 +1,8 @@
 Package: crossvalidation
 Type: Package
 Title: Generic cross-validation functions
-Version: 0.6.0
-Date: 2025-10-02
+Version: 0.6.1
+Date: 2026-05-10
 Author: T. Moudiki
 Maintainer: T. Moudiki <thierry.moudiki@gmail.com>
 Description: Generic functions for cross-validation of Statistical/Machine Learning models 
@@ -20,6 +20,7 @@ Suggests:
     knitr,
     rmarkdown,
     xgboost,
-    misc 
+    misc,
+    Matrix
 VignetteBuilder: knitr
 Remotes: thierrymoudiki/misc

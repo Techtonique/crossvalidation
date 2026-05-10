@@ -1,0 +1,147 @@
+---
+title: "crossval_proba_ts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{crossval_proba_ts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+library(crossvalidation)
+```
+
+# Example 1
+
+```{r}
+require(forecast)
+data("AirPassengers")
+
+# Example 1 -----
+
+eval_metric <- function(predicted, observed)
+{
+  error <- observed - predicted$mean
+  
+  me <- mean(error)
+  rmse <- sqrt(mean(error^2))
+  mae <- mean(abs(error))
+  
+  # ----- 80% interval -----
+  
+  lower80 <- predicted$lower[, 1]
+  upper80 <- predicted$upper[, 1]
+  
+  coverage80 <- mean(
+    observed >= lower80 & observed <= upper80
+  )
+  
+  alpha80 <- 0.20
+  
+  winkler80 <- ifelse(
+    observed < lower80,
+    (upper80 - lower80) + (2 / alpha80) * (lower80 - observed),
+    ifelse(
+      observed > upper80,
+      (upper80 - lower80) + (2 / alpha80) * (observed - upper80),
+      (upper80 - lower80)
+    )
+  )
+  
+  # ----- 95% interval -----
+  
+  lower95 <- predicted$lower[, 2]
+  upper95 <- predicted$upper[, 2]
+  
+  coverage95 <- mean(
+    observed >= lower95 & observed <= upper95
+  )
+  
+  alpha95 <- 0.05
+  
+  winkler95 <- ifelse(
+    observed < lower95,
+    (upper95 - lower95) + (2 / alpha95) * (lower95 - observed),
+    ifelse(
+      observed > upper95,
+      (upper95 - lower95) + (2 / alpha95) * (observed - upper95),
+      (upper95 - lower95)
+    )
+  )
+  
+  c(
+    ME = me,
+    RMSE = rmse,
+    MAE = mae,
+    Coverage80 = coverage80,
+    Winkler80 = mean(winkler80),
+    Coverage95 = coverage95,
+    Winkler95 = mean(winkler95)
+  )
+}
+
+(res <- crossval_ts(y=AirPassengers, initial_window = 10,
+horizon = 3, fcast_func = forecast::thetaf, eval_metric = eval_metric))
+print(colMeans(res))
+```
+
+# Example 2
+
+```{r}
+eval_metric <- function(predicted, observed)
+{
+  error <- observed - predicted$mean
+  
+  me <- mean(error)
+  rmse <- sqrt(mean(error^2))
+  mae <- mean(abs(error))
+  
+  # Only one interval returned
+  lower <- predicted$lower
+  upper <- predicted$upper
+  
+  coverage <- mean(
+    observed >= lower & observed <= upper
+  )
+  
+  alpha <- 0.05
+  
+  winkler <- ifelse(
+    observed < lower,
+    (upper - lower) + (2 / alpha) * (lower - observed),
+    ifelse(
+      observed > upper,
+      (upper - lower) + (2 / alpha) * (observed - upper),
+      (upper - lower)
+    )
+  )
+  
+  c(
+    ME = me,
+    RMSE = rmse,
+    MAE = mae,
+    Coverage95 = coverage,
+    Winkler95 = mean(winkler)
+  )
+}
+
+fcast_func <- function(y, h, ...)
+{
+  forecast::thetaf(
+    y,
+    h = h,
+    level = 95
+  )
+}
+
+res <- crossval_ts(
+  y = AirPassengers,
+  initial_window = 10,
+  horizon = 3,
+  fcast_func = fcast_func,
+  eval_metric = eval_metric
+)
+
+print(colMeans(res))
+```
+
